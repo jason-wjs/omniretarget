@@ -1,0 +1,4 @@
+recursive-include src/holosoma_retargeting/models *
+recursive-include src/holosoma_retargeting/demo_data *
+recursive-include src/holosoma_retargeting *.md
+recursive-include src/holosoma_retargeting *.jinja
