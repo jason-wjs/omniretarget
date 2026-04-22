@@ -1,18 +1,11 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+from tests.path_helpers import PACKAGE_ROOT
+
 
 def _scene_xml() -> Path:
-    repo_root = Path(__file__).resolve().parents[3]
-    return (
-        repo_root
-        / "src"
-        / "holosoma_retargeting"
-        / "holosoma_retargeting"
-        / "models"
-        / "adam_pro"
-        / "adam_pro_29dof_w_largebox.xml"
-    )
+    return PACKAGE_ROOT / "models" / "adam_pro" / "adam_pro_29dof_w_largebox.xml"
 
 
 def test_adam_pro_largebox_scene_xml_exists() -> None:

@@ -4,8 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-source "${REPO_ROOT}/scripts/source_retargeting_setup.sh"
-cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
+cd "${REPO_ROOT}/src/holosoma_retargeting"
 
 ## omomo_robot_only
 # python examples/robot_retarget.py \
@@ -32,7 +31,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
 #   "$@"
 
 ## lafan1
-python examples/robot_retarget.py \
+uv run python examples/robot_retarget.py \
   --robot adam_pro \
   --task-type robot_only \
   --task-name dance1_subject1 \
@@ -68,5 +67,4 @@ python examples/robot_retarget.py \
 #   --retargeter.debug \
 #   --retargeter.visualize \
 #   "$@"
-
 

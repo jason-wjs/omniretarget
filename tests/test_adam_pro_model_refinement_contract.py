@@ -1,7 +1,9 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MODEL_XML = Path("holosoma_retargeting/models/adam_pro/adam_pro_29dof.xml")
+from tests.path_helpers import PACKAGE_ROOT
+
+MODEL_XML = PACKAGE_ROOT / "models" / "adam_pro" / "adam_pro_29dof.xml"
 
 EXPECTED_29 = [
     "hipPitch_Left",

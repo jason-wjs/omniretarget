@@ -6,14 +6,6 @@ REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
 cd "${REPO_ROOT}/src/holosoma_retargeting"
 
-# Quantitative evaluation defaults:
-# - Adam Pro
-# - robot_only
-# - OMOMO data
-#
-# Placeholders for other modes:
-# - object interaction: --data-type robot_object --object-name largebox
-# - terrain/climb: --data-type robot_terrain --data-dir demo_data/climb --object-name multi_boxes
 uv run python evaluation/eval_retargeting.py \
   --res-dir "demo_results_parallel/adam_pro/robot_only/omomo" \
   --data-dir "demo_data/OMOMO_new" \

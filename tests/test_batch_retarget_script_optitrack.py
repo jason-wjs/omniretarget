@@ -1,9 +1,10 @@
 from pathlib import Path
 
+from tests.path_helpers import REPO_ROOT
+
 
 def test_batch_retarget_script_defaults_to_optitrack_robot_only() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    script = repo_root / "scripts" / "retargeting" / "retarget_batch_clips.sh"
+    script = REPO_ROOT / "scripts" / "retargeting" / "retarget_batch_clips.sh"
 
     assert script.is_file()
     content = script.read_text(encoding="utf-8")

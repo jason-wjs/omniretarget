@@ -5,8 +5,10 @@ setup(
     version="0.1.0",
     description="holosoma-retargeting: retargeting components for converting human motions to robot motions",
     author="Amazon FAR Team",
-    packages=find_packages(),
-    python_requires=">=3.10",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    include_package_data=True,
+    python_requires=">=3.11",
     install_requires=[
         # Needs to ping numpy to 2.3.5;
         # reason: later numpy version such as 2.4 will trigger

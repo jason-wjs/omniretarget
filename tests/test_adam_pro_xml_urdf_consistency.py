@@ -1,8 +1,10 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-XML = Path("holosoma_retargeting/models/adam_pro/adam_pro_29dof.xml")
-URDF = Path("holosoma_retargeting/models/adam_pro/adam_pro_29dof.urdf")
+from tests.path_helpers import PACKAGE_ROOT
+
+XML = PACKAGE_ROOT / "models" / "adam_pro" / "adam_pro_29dof.xml"
+URDF = PACKAGE_ROOT / "models" / "adam_pro" / "adam_pro_29dof.urdf"
 FOOT_MARKERS = [
     "left_foot_sphere_1_link",
     "left_foot_sphere_2_link",

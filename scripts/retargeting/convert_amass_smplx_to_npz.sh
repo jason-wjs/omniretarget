@@ -4,11 +4,14 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-source "${REPO_ROOT}/scripts/source_retargeting_setup.sh"
-cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
+cd "${REPO_ROOT}/src/holosoma_retargeting"
 
 # Use vendored human_body_prior package for SMPL-X body model loading.
 export PYTHONPATH="${PWD}/data_utils/human_body_prior:${PYTHONPATH:-}"
+
+AMASS_ROOT="${AMASS_ROOT:-demo_data/AMASS}"
+OUTPUT_DIR="${OUTPUT_DIR:-demo_data/amass_npz}"
+MODEL_ROOT="${MODEL_ROOT:-models}"
 
 # Convert AMASS SMPL-X clips to retargeting-ready NPZ files
 # with keys: global_joint_positions and height.
@@ -19,8 +22,8 @@ export PYTHONPATH="${PWD}/data_utils/human_body_prior:${PYTHONPATH:-}"
 #
 # Optional:
 # - --subdataset-folder: process one subset only (e.g. HumanEva)
-python -m data_utils.prep_amass_smplx_for_rt \
-  --amass-root-folder "/home/humanoid/Projects/Junsong_WU/adam_reference/holosoma/src/holosoma_retargeting/holosoma_retargeting/demo_data/AMASS" \
-  --output-folder "demo_data/amass_npz" \
-  --model-root-folder "/home/humanoid/Projects/Junsong_WU/adam_reference/holosoma/src/holosoma_retargeting/holosoma_retargeting/models" \
+uv run python -m data_utils.prep_amass_smplx_for_rt \
+  --amass-root-folder "${AMASS_ROOT}" \
+  --output-folder "${OUTPUT_DIR}" \
+  --model-root-folder "${MODEL_ROOT}" \
   "$@"

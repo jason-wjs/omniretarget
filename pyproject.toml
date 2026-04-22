@@ -7,7 +7,7 @@ name = "holosoma-retargeting"
 version = "0.1.0"
 description = "Retargeting utilities for converting human motions to robot motions."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "Amazon FAR Team" },
 ]
@@ -33,9 +33,15 @@ dependencies = [
     "tyro",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["mypy", "ruff", "pytest"]
 
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "src"
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["holosoma_retargeting*"]

@@ -1,9 +1,10 @@
 from pathlib import Path
 
+from tests.path_helpers import REPO_ROOT
+
 
 def test_lafan_bvh_to_npy_script_exists_with_expected_converter_call() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    script = repo_root / "scripts" / "retargeting" / "convert_lafan_bvh_to_npy.sh"
+    script = REPO_ROOT / "scripts" / "retargeting" / "convert_lafan_bvh_to_npy.sh"
 
     assert script.is_file()
     content = script.read_text(encoding="utf-8")

@@ -4,8 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-source "${REPO_ROOT}/scripts/source_retargeting_setup.sh"
-cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
+cd "${REPO_ROOT}/src/holosoma_retargeting"
 
 ## omomo_robot_only
 # python data_conversion/convert_data_format_mj.py \
@@ -30,7 +29,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
 #   "$@"
 
 ## lafan_robot_only
-python data_conversion/convert_data_format_mj.py \
+uv run python data_conversion/convert_data_format_mj.py \
   --input_file ./demo_results/adam_pro/robot_only/lafan1/dance1_subject1.npz \
   --output_fps 50 \
   --output_name converted_res/robot_only/lafan1/dance1_subject1_mj_fps50.npz \
