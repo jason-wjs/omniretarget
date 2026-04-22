@@ -70,6 +70,13 @@ bash scripts/retargeting/eval.sh
 bash scripts/retargeting/replay_viser.sh
 ```
 
+## Verification
+
+```bash
+uv sync
+bash scripts/test_smoke.sh
+```
+
 ## More Detailed Usage
 
 See `src/holosoma_retargeting/README.md` for direct Python entrypoints, example command lines, and package-level workflow notes.
