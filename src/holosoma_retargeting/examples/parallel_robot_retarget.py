@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import multiprocessing as mp
 import os
-import sys
 
 # Add src to path for direct execution
 import time
@@ -18,10 +17,6 @@ from pathlib import Path
 
 import numpy as np
 import tyro
-
-src_root = Path(__file__).resolve().parents[2]
-if str(src_root) not in sys.path:
-    sys.path.insert(0, str(src_root))
 
 from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeting import ParallelRetargetingConfig  # noqa: E402

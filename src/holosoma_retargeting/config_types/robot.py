@@ -7,6 +7,8 @@ from typing import TypedDict
 
 import numpy as np
 
+from holosoma_retargeting.path_utils import package_path
+
 
 # Default values per robot type
 class RobotDefaults(TypedDict):
@@ -112,7 +114,7 @@ class RobotConfig:
         """Get robot URDF file path."""
         if self.robot_urdf_file is not None:
             return self.robot_urdf_file
-        return f"models/{self.robot_type}/{self.robot_type}_{self.ROBOT_DOF}dof.urdf"
+        return str(package_path(f"models/{self.robot_type}/{self.robot_type}_{self.ROBOT_DOF}dof.urdf"))
 
     ROBOT_URDF_FILE = property(_robot_urdf_file, doc="Get robot URDF file path.")
 

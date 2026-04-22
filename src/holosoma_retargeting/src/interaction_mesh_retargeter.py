@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import sys
 import time
-from pathlib import Path
 from types import ModuleType
 
 import cvxpy as cp  # type: ignore[import-not-found]
@@ -16,15 +14,11 @@ from scipy.spatial.transform import Rotation  # type: ignore[import-untyped]
 from tqdm import tqdm
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
-# Add src to path for direct execution
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
 # Import with type ignore for mypy compatibility
-from mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
+from holosoma_retargeting.src.mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
     _world_mesh_from_geom,
 )
-from utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
+from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
     calculate_laplacian_coordinates,
     calculate_laplacian_matrix,
     create_interaction_mesh,
@@ -32,7 +26,9 @@ from utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
     transform_points_local_to_world,
     transform_points_world_to_local,
 )
-from viser_utils import create_motion_control_sliders  # type: ignore[import-not-found,no-redef]  # noqa: E402
+from holosoma_retargeting.src.viser_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
+    create_motion_control_sliders,
+)
 
 
 class InteractionMeshRetargeter:

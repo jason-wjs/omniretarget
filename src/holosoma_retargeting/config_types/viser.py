@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from holosoma_retargeting.path_utils import package_path
+
 
 @dataclass(frozen=True)
 class ViserConfig:
@@ -16,7 +18,7 @@ class ViserConfig:
     qpos_npz: str = "rt_results/OMOMO_new/box_parallel/sub8_largebox_051_original.npz"
     """Path to .npz file with qpos data."""
 
-    robot_urdf: str = "models/g1/g1_29dof.urdf"
+    robot_urdf: str = str(package_path("models/g1/g1_29dof.urdf"))
     """Path to robot URDF file."""
 
     object_urdf: str | None = None

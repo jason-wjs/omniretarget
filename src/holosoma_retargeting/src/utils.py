@@ -17,6 +17,8 @@ from jinja2 import Template
 from scipy.spatial import Delaunay  # type: ignore[import-untyped]
 from scipy.spatial.transform import Rotation as R  # type: ignore[import-untyped]  # noqa: N817
 
+from holosoma_retargeting.path_utils import package_path
+
 
 def load_intermimic_data(file_path):
     """
@@ -37,7 +39,7 @@ def load_intermimic_data(file_path):
 
 def calculate_scale_factor(task_name, robot_height):
     """Calculate scale factor based on human height."""
-    with open("demo_data/height_dict.pkl", "rb") as f:
+    with package_path("demo_data/height_dict.pkl").open("rb") as f:
         height_dict = pickle.load(f)
     sub_name = task_name.split("_")[0]
     human_height = height_dict[sub_name]

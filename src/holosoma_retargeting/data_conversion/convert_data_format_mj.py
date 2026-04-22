@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Tuple, cast
 
@@ -14,12 +12,10 @@ import torch
 import torch.nn.functional as F
 import tyro
 
-src_root = Path(__file__).resolve().parents[2]
-if str(src_root) not in sys.path:
-    sys.path.insert(0, str(src_root))
 from holosoma_retargeting.config_types.data_conversion import DataConversionConfig  # noqa: E402
 from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.path_utils import package_path  # noqa: E402
 
 DynamicState = Tuple[
     torch.Tensor,
@@ -62,12 +58,14 @@ def create_task_constants(
         namespace.OBJECT_NAME = object_name
 
     if namespace.OBJECT_NAME != "ground":
-        namespace.OBJECT_URDF_FILE = f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"
-        namespace.OBJECT_MESH_FILE = f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"
-        namespace.OBJECT_URDF_TEMPLATE = f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"
-        namespace.SCENE_XML_FILE = (
-            f"models/{robot_config.robot_type}/"
-            f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
+        namespace.OBJECT_URDF_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"))
+        namespace.OBJECT_MESH_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"))
+        namespace.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"))
+        namespace.SCENE_XML_FILE = str(
+            package_path(
+                f"models/{robot_config.robot_type}/"
+                f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
+            )
         )
     else:
         namespace.OBJECT_URDF_FILE = namespace.ROBOT_URDF_FILE

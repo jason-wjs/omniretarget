@@ -8,7 +8,6 @@ Evaluates:
 
 from __future__ import annotations
 
-import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -21,14 +20,12 @@ import numpy as np
 import trimesh
 import tyro
 
-src_root = Path(__file__).resolve().parents[2]
-if str(src_root) not in sys.path:
-    sys.path.insert(0, str(src_root))
 from holosoma_retargeting.config_types.data_type import (  # noqa: E402
     SMPLH_DEMO_JOINTS,
     MotionDataConfig,
 )
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.path_utils import package_path  # noqa: E402
 from holosoma_retargeting.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
 from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
     calculate_scale_factor,
@@ -67,12 +64,14 @@ def create_task_constants(
 
     # Provide default object asset paths for non-ground objects
     if namespace.OBJECT_NAME != "ground":
-        namespace.OBJECT_URDF_FILE = f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"
-        namespace.OBJECT_MESH_FILE = f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"
-        namespace.OBJECT_URDF_TEMPLATE = f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"
-        namespace.SCENE_XML_FILE = (
-            f"models/{robot_config.robot_type}/"
-            f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
+        namespace.OBJECT_URDF_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"))
+        namespace.OBJECT_MESH_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"))
+        namespace.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"))
+        namespace.SCENE_XML_FILE = str(
+            package_path(
+                f"models/{robot_config.robot_type}/"
+                f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
+            )
         )
     else:
         namespace.SCENE_XML_FILE = namespace.ROBOT_URDF_FILE.replace(".urdf", ".xml")

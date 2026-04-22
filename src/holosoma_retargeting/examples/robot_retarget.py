@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Literal
@@ -17,15 +16,12 @@ from typing import Literal
 import numpy as np
 import tyro
 
-src_root = Path(__file__).resolve().parents[2]
-if str(src_root) not in sys.path:
-    sys.path.insert(0, str(src_root))
-
 from holosoma_retargeting.config_types.data_type import DEMO_JOINTS_REGISTRY, MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeter import RetargeterConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeting import RetargetingConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.config_types.task import TaskConfig  # noqa: E402
+from holosoma_retargeting.path_utils import package_path  # noqa: E402
 from holosoma_retargeting.src.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
@@ -153,9 +149,9 @@ def create_task_constants(
     elif task_type == "object_interaction":
         obj_name = task_config.object_name or "largebox"
         task_constants.OBJECT_NAME = obj_name
-        task_constants.OBJECT_URDF_FILE = f"models/{obj_name}/{obj_name}.urdf"
-        task_constants.OBJECT_MESH_FILE = f"models/{obj_name}/{obj_name}.obj"
-        task_constants.OBJECT_URDF_TEMPLATE = f"models/templates/{obj_name}.urdf.jinja"
+        task_constants.OBJECT_URDF_FILE = str(package_path(f"models/{obj_name}/{obj_name}.urdf"))
+        task_constants.OBJECT_MESH_FILE = str(package_path(f"models/{obj_name}/{obj_name}.obj"))
+        task_constants.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{obj_name}.urdf.jinja"))
     elif task_type == "climbing":
         obj_name = task_config.object_name or "multi_boxes"
         task_constants.OBJECT_NAME = obj_name
