@@ -30,6 +30,38 @@ class NoInsertPath(list[str]):
             ],
         ),
         (
+            "holosoma_retargeting.cli.retarget",
+            [
+                "holosoma_retargeting.cli.retarget",
+                "holosoma_retargeting.pipelines.retarget",
+                "holosoma_retargeting.pipelines.task_setup",
+                "holosoma_retargeting.pipelines.motion_loading",
+                "holosoma_retargeting.pipelines.object_setup",
+                "holosoma_retargeting.src.interaction_mesh_retargeter",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.parallel_retarget",
+            [
+                "holosoma_retargeting.cli.parallel_retarget",
+                "holosoma_retargeting.pipelines.parallel",
+                "holosoma_retargeting.pipelines.retarget",
+                "holosoma_retargeting.src.interaction_mesh_retargeter",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.evaluate",
+            ["holosoma_retargeting.cli.evaluate"],
+        ),
+        (
+            "holosoma_retargeting.cli.convert_mj",
+            ["holosoma_retargeting.cli.convert_mj"],
+        ),
+        (
+            "holosoma_retargeting.cli.replay",
+            ["holosoma_retargeting.cli.replay"],
+        ),
+        (
             "holosoma_retargeting.data_conversion.convert_data_format_mj",
             ["holosoma_retargeting.data_conversion.convert_data_format_mj"],
         ),
