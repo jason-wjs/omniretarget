@@ -25,12 +25,12 @@ from holosoma_retargeting.pipelines.task_setup import (  # noqa: E402
     DEFAULT_DATA_FORMATS,
     create_task_constants,
 )
+from holosoma_retargeting.pipelines.motion_loading import load_motion_data  # noqa: E402
 
 # Import reusable functions from robot_retarget.py
 from holosoma_retargeting.examples.robot_retarget import (  # type: ignore[import-not-found]  # noqa: E402
     build_retargeter_kwargs_from_config,
     initialize_robot_pose,
-    load_motion_data,
     setup_object_data,
 )
 
