@@ -102,7 +102,7 @@ JOINTS_MAPPINGS = {
 
 **Important**: If you processed your data to the `.npz` format in Step 1 (with `global_joint_positions` and `height` keys), you can **skip this step entirely**. The code automatically handles `.npz` files with this structure via a fallback mechanism.
 
-If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `examples/robot_retarget.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
+If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `src/holosoma_retargeting/pipelines/motion_loading.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
 
 ```python
 def load_motion_data(...):
@@ -133,7 +133,7 @@ def load_motion_data(...):
 3. ✅ **Required**: Add to `TOE_NAMES_BY_FORMAT`
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
-**In `examples/robot_retarget.py`** (only if needed):
+**In `pipelines/motion_loading.py`** (only if needed):
 7. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
 
 
@@ -142,7 +142,7 @@ def load_motion_data(...):
 Once configured, you can use your custom format:
 
 ```bash
-python examples/robot_retarget.py \
+python -m holosoma_retargeting.cli.retarget \
   --data_path /path/to/your/data \
   --task-type robot_only \
   --task-name your_sequence_name \

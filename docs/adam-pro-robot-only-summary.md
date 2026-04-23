@@ -23,7 +23,7 @@ This note summarizes the current `robot_only` support added for Adam Pro in `hol
 
 Main files:
 - `src/holosoma_retargeting/holosoma_retargeting/config_types/robot.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
+- `src/holosoma_retargeting/pipelines/retarget.py`
 
 ### 2) Adam Pro model refinements for retargeting XML/URDF flow
 
@@ -90,8 +90,8 @@ Main files:
 - This differs from non-OptiTrack defaults and improves floor grounding stability for OptiTrack data.
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/parallel_robot_retarget.py`
+- `src/holosoma_retargeting/pipelines/retarget.py`
+- `src/holosoma_retargeting/pipelines/parallel.py`
 
 ## Bash Usage (`scripts/retargeting`)
 
