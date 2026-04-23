@@ -21,3 +21,8 @@ def test_package_root_does_not_keep_residue_files() -> None:
     ]
     for path in forbidden:
         assert not path.exists()
+
+
+def test_manifest_does_not_package_markdown_docs() -> None:
+    manifest = Path("MANIFEST.in").read_text()
+    assert "recursive-include src/holosoma_retargeting *.md" not in manifest
