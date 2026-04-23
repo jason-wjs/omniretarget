@@ -70,6 +70,14 @@ class NoInsertPath(list[str]):
             ["holosoma_retargeting.pipelines.motion_loading"],
         ),
         (
+            "holosoma_retargeting.pipelines.object_setup",
+            ["holosoma_retargeting.pipelines.object_setup"],
+        ),
+        (
+            "holosoma_retargeting.pipelines.retarget",
+            ["holosoma_retargeting.pipelines.retarget"],
+        ),
+        (
             "holosoma_retargeting.data_conversion.convert_data_format_mj",
             ["holosoma_retargeting.data_conversion.convert_data_format_mj"],
         ),
