@@ -12,3 +12,12 @@ def test_repo_level_markdown_docs_are_not_stored_in_package_root() -> None:
     ]
     for path in forbidden:
         assert not path.exists()
+
+
+def test_package_root_does_not_keep_residue_files() -> None:
+    forbidden = [
+        Path("src/holosoma_retargeting/MUJOCO_LOG.TXT"),
+        Path("src/holosoma_retargeting/.gitignore"),
+    ]
+    for path in forbidden:
+        assert not path.exists()
