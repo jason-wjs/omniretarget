@@ -34,7 +34,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv sync
 
 ## Recommended Entry Points
 
-The shell wrappers under `scripts/retargeting/` are the supported entry points from the repository root. They handle the current package-relative working directory assumptions for demo assets and examples.
+The shell wrappers under `scripts/retargeting/` are the supported entry points from the repository root. They call the package `holosoma_retargeting.cli.*` modules while preserving the current package-relative working directory assumptions for demo assets.
 
 ### Single Clip Retargeting
 

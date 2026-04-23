@@ -8,7 +8,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 
 QPOS_NPZ="${QPOS_NPZ:-demo_results/adam_pro/robot_only/omomo/sub3_largebox_003.npz}"
 
-uv run python viser_player.py \
+uv run python -m holosoma_retargeting.cli.replay \
   --qpos-npz "${QPOS_NPZ}" \
   --robot-urdf models/adam_pro/adam_pro_29dof.urdf \
   --fps 30 \

@@ -14,7 +14,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 # Placeholders for other modes:
 # - object interaction: --data-type robot_object --object-name largebox
 # - terrain/climb: --data-type robot_terrain --data-dir demo_data/climb --object-name multi_boxes
-uv run python evaluation/eval_retargeting.py \
+uv run python -m holosoma_retargeting.cli.evaluate \
   --res-dir "demo_results_parallel/adam_pro/robot_only/omomo" \
   --data-dir "demo_data/OMOMO_new" \
   --data-type robot_only \

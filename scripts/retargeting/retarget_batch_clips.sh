@@ -14,7 +14,7 @@ DATA_FORMAT="${DATA_FORMAT:-optitrack}"
 DATA_DIR="${DATA_DIR:-demo_data/optitrack_npz}"
 SAVE_DIR="${SAVE_DIR:-demo_results_parallel/${ROBOT}/robot_only/optitrack}"
 
-uv run python examples/parallel_robot_retarget.py \
+uv run python -m holosoma_retargeting.cli.parallel_retarget \
   --robot "${ROBOT}" \
   --task-config.object-name ground \
   --task-type robot_only \
@@ -23,4 +23,3 @@ uv run python examples/parallel_robot_retarget.py \
   --augmentation false \
   --save-dir "${SAVE_DIR}" \
   "$@"
-
