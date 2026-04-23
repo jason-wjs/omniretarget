@@ -11,17 +11,22 @@ import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Literal
 
 import numpy as np
 import tyro
 
-from holosoma_retargeting.config_types.data_type import DEMO_JOINTS_REGISTRY, MotionDataConfig  # noqa: E402
+from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeter import RetargeterConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeting import RetargetingConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.config_types.task import TaskConfig  # noqa: E402
-from holosoma_retargeting.path_utils import package_path  # noqa: E402
+from holosoma_retargeting.pipelines.task_setup import (  # noqa: E402
+    DEFAULT_DATA_FORMATS,
+    DEFAULT_SAVE_DIRS,
+    TaskType,
+    create_task_constants,
+    validate_config,
+)
 from holosoma_retargeting.src.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
@@ -47,147 +52,13 @@ logger = logging.getLogger(__name__)
 
 # ----------------------------- Constants -----------------------------
 
-# Task-specific defaults
-DEFAULT_DATA_FORMATS = {
-    "robot_only": "smplh",
-    "object_interaction": "smplh",
-    "climbing": "mocap",
-}
-
-DEFAULT_SAVE_DIRS = {
-    "robot_only": "demo_results/{robot}/robot_only/omomo",
-    "object_interaction": "demo_results/{robot}/object_interaction/omomo",
-    "climbing": "demo_results/{robot}/climbing/mocap_climb",
-}
-
-
 # Constants for numpy arrays (not in dataclass to avoid tyro parsing issues)
 _OBJECT_SCALE_AUGMENTED = np.array([1.0, 1.0, 1.2])
 _OBJECT_SCALE_NORMAL = np.array([1.0, 1.0, 1.0])
 _AUGMENTATION_TRANSLATION = np.array([0.2, 0.0, 0.0])
 
 
-# Type aliases
-TaskType = Literal["robot_only", "object_interaction", "climbing"]
-# DataFormat is imported from config_types.data_type
-
-# Adam Pro robot-only hip constraint profile (moderate, asymmetry-preserving).
-# Indices are qpos indices in the retargeting optimization state when q_a_init_idx == -7.
-_ADAM_PRO_ROBOT_ONLY_HIP_LB = {
-    "8": -0.499,   # left hip roll
-    "9": -0.628,   # left hip yaw
-    "14": -1.371,  # right hip roll
-    "15": -0.628,  # right hip yaw
-}
-_ADAM_PRO_ROBOT_ONLY_HIP_UB = {
-    "8": 1.371,   # left hip roll
-    "9": 0.628,   # left hip yaw
-    "14": 0.499,  # right hip roll
-    "15": 0.628,  # right hip yaw
-}
-
-
 # ----------------------------- Helper Functions -----------------------------
-
-
-def create_task_constants(
-    robot_config: RobotConfig,
-    motion_data_config: MotionDataConfig,
-    task_config: TaskConfig,
-    task_type: str,
-) -> SimpleNamespace:
-    """Create combined task constants from robot and motion data configs.
-
-    Args:
-        robot_config: Robot configuration
-        motion_data_config: Motion data format configuration
-        task_config: Task-specific configuration
-        task_type: Type of task ("robot_only", "object_interaction", "climbing")
-
-    Returns:
-        SimpleNamespace with all task constants
-    """
-    task_constants = SimpleNamespace()
-
-    # Copy all attributes from robot_config
-    for attr in dir(robot_config):
-        if attr.isupper() and not attr.startswith("_"):
-            setattr(task_constants, attr, getattr(robot_config, attr))
-
-    # Copy legacy motion data constants (upper-case for compatibility)
-    for attr, value in motion_data_config.legacy_constants().items():
-        setattr(task_constants, attr, value)
-
-    # Robot-only Adam Pro profile: apply hip roll/yaw manual bounds only.
-    # Keep manual costs untouched (no hip zero-centering prior requested).
-    if task_type == "robot_only" and robot_config.robot_type == "adam_pro":
-        manual_lb = dict(task_constants.MANUAL_LB)
-        manual_ub = dict(task_constants.MANUAL_UB)
-        manual_lb.update(_ADAM_PRO_ROBOT_ONLY_HIP_LB)
-        manual_ub.update(_ADAM_PRO_ROBOT_ONLY_HIP_UB)
-        task_constants.MANUAL_LB = manual_lb
-        task_constants.MANUAL_UB = manual_ub
-
-    # Task-aware mapping override for Adam Pro object interaction:
-    # use hand EE markers only in object mode, while keeping robot-only mappings unchanged.
-    if task_type == "object_interaction" and robot_config.robot_type == "adam_pro":
-        joint_mapping = dict(task_constants.JOINTS_MAPPING)
-        for left_key in ("L_Wrist", "LeftHand"):
-            if left_key in joint_mapping:
-                joint_mapping[left_key] = "left_hand_ee_link"
-        for right_key in ("R_Wrist", "RightHand"):
-            if right_key in joint_mapping:
-                joint_mapping[right_key] = "right_hand_ee_link"
-        task_constants.JOINTS_MAPPING = joint_mapping
-
-    # Task-specific object setup
-    if task_type == "robot_only":
-        obj_name = task_config.object_name or "ground"
-        task_constants.OBJECT_NAME = obj_name
-        task_constants.OBJECT_URDF_FILE = None
-        task_constants.OBJECT_MESH_FILE = None
-    elif task_type == "object_interaction":
-        obj_name = task_config.object_name or "largebox"
-        task_constants.OBJECT_NAME = obj_name
-        task_constants.OBJECT_URDF_FILE = str(package_path(f"models/{obj_name}/{obj_name}.urdf"))
-        task_constants.OBJECT_MESH_FILE = str(package_path(f"models/{obj_name}/{obj_name}.obj"))
-        task_constants.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{obj_name}.urdf.jinja"))
-    elif task_type == "climbing":
-        obj_name = task_config.object_name or "multi_boxes"
-        task_constants.OBJECT_NAME = obj_name
-        object_dir = task_config.object_dir
-        task_constants.OBJECT_DIR = str(object_dir) if object_dir else ""
-        task_constants.OBJECT_URDF_FILE = str(object_dir / f"{obj_name}.urdf") if object_dir else f"{obj_name}.urdf"
-        task_constants.OBJECT_MESH_FILE = str(object_dir / f"{obj_name}.obj") if object_dir else f"{obj_name}.obj"
-        task_constants.SCENE_XML_FILE = ""  # Will be set later
-
-    return task_constants
-
-
-def validate_config(cfg: RetargetingConfig) -> None:
-    """Validate configuration consistency.
-
-    Args:
-        cfg: Configuration arguments
-
-    Raises:
-        ValueError: If configuration is invalid
-    """
-    # Validate that data_format exists in registry (if provided)
-    if cfg.data_format is not None and cfg.data_format not in DEMO_JOINTS_REGISTRY:
-        available = ", ".join(sorted(DEMO_JOINTS_REGISTRY.keys()))
-        raise ValueError(
-            f"Unknown data_format: '{cfg.data_format}'. "
-            f"Available formats: {available}. "
-            f"Add your format to DEMO_JOINTS_REGISTRY in config_types/data_type.py"
-        )
-
-    # Task-specific format requirements
-    if cfg.task_type == "climbing" and cfg.data_format not in (None, "mocap"):
-        raise ValueError("Climbing task requires 'mocap' data format")
-    if cfg.task_type == "object_interaction" and cfg.data_format not in (None, "smplh"):
-        raise ValueError("Object interaction requires 'smplh' data format")
-    # robot_only accepts any format in the registry (already validated above)
 
 
 def create_ground_points(x_range: tuple[float, float], y_range: tuple[float, float], size: int) -> np.ndarray:

@@ -21,12 +21,14 @@ import tyro
 from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeting import ParallelRetargetingConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.pipelines.task_setup import (  # noqa: E402
+    DEFAULT_DATA_FORMATS,
+    create_task_constants,
+)
 
 # Import reusable functions from robot_retarget.py
 from holosoma_retargeting.examples.robot_retarget import (  # type: ignore[import-not-found]  # noqa: E402
-    DEFAULT_DATA_FORMATS,
     build_retargeter_kwargs_from_config,
-    create_task_constants,
     initialize_robot_pose,
     load_motion_data,
     setup_object_data,

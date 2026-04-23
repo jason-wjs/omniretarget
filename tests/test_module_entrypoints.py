@@ -62,6 +62,10 @@ class NoInsertPath(list[str]):
             ["holosoma_retargeting.cli.replay"],
         ),
         (
+            "holosoma_retargeting.pipelines.task_setup",
+            ["holosoma_retargeting.pipelines.task_setup"],
+        ),
+        (
             "holosoma_retargeting.data_conversion.convert_data_format_mj",
             ["holosoma_retargeting.data_conversion.convert_data_format_mj"],
         ),
