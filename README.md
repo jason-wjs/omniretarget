@@ -80,3 +80,8 @@ bash scripts/test_smoke.sh
 ## More Detailed Usage
 
 See `src/holosoma_retargeting/README.md` for direct Python entrypoints, example command lines, and package-level workflow notes.
+
+Additional repo docs:
+- `docs/add-motion-format.md`
+- `docs/add-robot-type.md`
+- `docs/adam-pro-robot-only-summary.md`

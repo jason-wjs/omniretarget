@@ -152,5 +152,5 @@ uv run python evaluation/eval_retargeting.py \
 
 ## Extension Notes
 
-- Custom motion format instructions: `ADD_MOTION_FORMAT_README.md`
-- Custom robot instructions: `ADD_ROBOT_TYPE_README.md`
+- Custom motion format instructions: [`../../docs/add-motion-format.md`](../../docs/add-motion-format.md)
+- Custom robot instructions: [`../../docs/add-robot-type.md`](../../docs/add-robot-type.md)
