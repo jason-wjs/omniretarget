@@ -56,7 +56,7 @@ bash scripts/retargeting/convert_optitrack_pkl_to_npz.sh
 bash scripts/retargeting/convert_amass_smplx_to_npz.sh
 ```
 
-For direct MuJoCo export of retargeted trajectories, use the package-level command examples in `src/holosoma_retargeting/README.md`.
+For direct MuJoCo export of retargeted trajectories, see `docs/usage.md`.
 
 ### Evaluation
 
@@ -79,9 +79,10 @@ bash scripts/test_smoke.sh
 
 ## More Detailed Usage
 
-See `src/holosoma_retargeting/README.md` for direct Python entrypoints, example command lines, and package-level workflow notes.
+See `docs/usage.md` for direct Python entry points, example command lines, and detailed usage notes.
 
 Additional repo docs:
+- `docs/usage.md`
 - `docs/add-motion-format.md`
 - `docs/add-robot-type.md`
 - `docs/adam-pro-robot-only-summary.md`

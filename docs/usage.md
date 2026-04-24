@@ -1,8 +1,12 @@
-# holosoma_retargeting
+# OmniRetarget Usage
 
-This directory contains the extracted retargeting package used by OmniRetarget.
+This guide collects direct Python entry points and example command lines for OmniRetarget.
 
-If you are working from the repository root, prefer the shell wrappers under `scripts/retargeting/`. The commands below are the direct Python entrypoints and assume you are running from this directory.
+For routine use from the repository root, prefer the shell wrappers under `scripts/retargeting/`. The direct commands below currently assume package-relative demo data, models, and output paths. Run them from the retargeting package directory:
+
+```bash
+cd src/holosoma_retargeting
+```
 
 ## Supported Tasks
 
@@ -12,7 +16,7 @@ If you are working from the repository root, prefer the shell wrappers under `sc
 
 ## Motion Data Requirements
 
-The retargeting pipeline expects world joint positions with shape `(T, J, 3)`. For custom data formats, update the joint definitions and mappings in `config_types/data_type.py`.
+The retargeting pipeline expects world joint positions with shape `(T, J, 3)`. For custom data formats, update the joint definitions and mappings in `src/holosoma_retargeting/config_types/data_type.py`.
 
 ## Single Sequence Retargeting
 
@@ -152,5 +156,5 @@ uv run python evaluation/eval_retargeting.py \
 
 ## Extension Notes
 
-- Custom motion format instructions: [`../../docs/add-motion-format.md`](../../docs/add-motion-format.md)
-- Custom robot instructions: [`../../docs/add-robot-type.md`](../../docs/add-robot-type.md)
+- Custom motion format instructions: [`add-motion-format.md`](add-motion-format.md)
+- Custom robot instructions: [`add-robot-type.md`](add-robot-type.md)
