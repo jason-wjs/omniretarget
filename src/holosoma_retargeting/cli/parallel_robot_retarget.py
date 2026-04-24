@@ -34,7 +34,7 @@ from holosoma_retargeting.cli.robot_retarget import (  # noqa: E402
 )
 
 # Import after path modification
-from holosoma_retargeting.src.interaction_mesh_retargeter import (  # noqa: E402
+from holosoma_retargeting.retargeter.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
 from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  # noqa: E402

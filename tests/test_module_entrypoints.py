@@ -46,6 +46,7 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             [
                 "holosoma_retargeting.examples.robot_retarget",
                 "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),
@@ -53,6 +54,7 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             "holosoma_retargeting.cli.robot_retarget",
             [
                 "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),
@@ -63,6 +65,7 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
                 "holosoma_retargeting.examples.robot_retarget",
                 "holosoma_retargeting.cli.parallel_robot_retarget",
                 "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),
@@ -71,6 +74,7 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             [
                 "holosoma_retargeting.cli.parallel_robot_retarget",
                 "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),

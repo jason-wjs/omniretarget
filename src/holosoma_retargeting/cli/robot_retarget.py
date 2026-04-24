@@ -23,7 +23,7 @@ from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.config_types.task import TaskConfig  # noqa: E402
 from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
-from holosoma_retargeting.src.interaction_mesh_retargeter import (  # noqa: E402
+from holosoma_retargeting.retargeter.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
 from holosoma_retargeting.src.utils import (  # noqa: E402
