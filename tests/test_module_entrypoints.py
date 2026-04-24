@@ -18,6 +18,14 @@ class NoInsertPath(list[str]):
             "holosoma_retargeting.examples.robot_retarget",
             [
                 "holosoma_retargeting.examples.robot_retarget",
+                "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.src.interaction_mesh_retargeter",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.robot_retarget",
+            [
+                "holosoma_retargeting.cli.robot_retarget",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),
@@ -26,6 +34,16 @@ class NoInsertPath(list[str]):
             [
                 "holosoma_retargeting.examples.parallel_robot_retarget",
                 "holosoma_retargeting.examples.robot_retarget",
+                "holosoma_retargeting.cli.parallel_robot_retarget",
+                "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.src.interaction_mesh_retargeter",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.parallel_robot_retarget",
+            [
+                "holosoma_retargeting.cli.parallel_robot_retarget",
+                "holosoma_retargeting.cli.robot_retarget",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
             ],
         ),
@@ -35,11 +53,36 @@ class NoInsertPath(list[str]):
         ),
         (
             "holosoma_retargeting.evaluation.eval_retargeting",
-            ["holosoma_retargeting.evaluation.eval_retargeting"],
+            [
+                "holosoma_retargeting.evaluation.eval_retargeting",
+                "holosoma_retargeting.cli.eval_retargeting",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.eval_retargeting",
+            ["holosoma_retargeting.cli.eval_retargeting"],
         ),
         (
             "holosoma_retargeting.viser_player",
-            ["holosoma_retargeting.viser_player"],
+            [
+                "holosoma_retargeting.viser_player",
+                "holosoma_retargeting.cli.viser_player",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.viser_player",
+            ["holosoma_retargeting.cli.viser_player"],
+        ),
+        (
+            "holosoma_retargeting.data_conversion.viser_body_vel_player",
+            [
+                "holosoma_retargeting.data_conversion.viser_body_vel_player",
+                "holosoma_retargeting.cli.viser_body_vel_player",
+            ],
+        ),
+        (
+            "holosoma_retargeting.cli.viser_body_vel_player",
+            ["holosoma_retargeting.cli.viser_body_vel_player"],
         ),
     ],
 )
