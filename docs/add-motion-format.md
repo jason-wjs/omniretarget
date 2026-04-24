@@ -136,7 +136,7 @@ def load_motion_data(...):
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
 **In `examples/robot_retarget.py`** (only if needed):
-7. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
+5. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
 
 
 ### Ready to Run

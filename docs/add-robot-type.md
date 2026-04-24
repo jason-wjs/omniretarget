@@ -140,12 +140,12 @@ JOINTS_MAPPINGS = {
 3. ⚠️ Add entries to `MANUAL_LB_BY_ROBOT` / `MANUAL_UB_BY_ROBOT` (optional, only if you need tighter limits than XML)
 
 **In `profiles/mappings.py`:**
-7. ✅ Add joint mappings to `JOINTS_MAPPINGS` for each `(data_format, "myrobot")` combination (required)
+4. ✅ Add joint mappings to `JOINTS_MAPPINGS` for each `(data_format, "myrobot")` combination (required)
 
 **File System:**
-8. ✅ Create `models/myrobot/` directory
-9. ✅ Place URDF file: `models/myrobot/myrobot_{dof}dof.urdf`
-10. ✅ Place XML file: `models/myrobot/myrobot_{dof}dof.xml`
+5. ✅ Create `models/myrobot/` directory
+6. ✅ Place URDF file: `models/myrobot/myrobot_{dof}dof.urdf`
+7. ✅ Place XML file: `models/myrobot/myrobot_{dof}dof.xml`
 
 ### Ready to Run
 
