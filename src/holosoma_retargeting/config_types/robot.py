@@ -3,25 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypedDict
 
 import numpy as np
 
 from holosoma_retargeting.path_utils import package_path
-
-
-# Default values per robot type
-class RobotDefaults(TypedDict):
-    robot_dof: int
-    robot_height: float
-    object_name: str
-
-
-_ROBOT_DEFAULTS: dict[str, RobotDefaults] = {
-    "g1": {"robot_dof": 29, "robot_height": 1.32, "object_name": "ground"},
-    "t1": {"robot_dof": 23, "robot_height": 1.2, "object_name": "ground"},
-    "adam_pro": {"robot_dof": 29, "robot_height": 1.67, "object_name": "ground"},
-}
+from holosoma_retargeting.profiles.robots import (
+    ROBOT_DEFAULTS as _ROBOT_DEFAULTS,
+    RobotDefaults,
+)
 
 
 def _validate_robot_type(robot_type: str) -> None:
