@@ -21,6 +21,41 @@ def test_package_path_resolves_robot_urdf() -> None:
     assert path.exists()
 
 
+def test_package_path_preserves_absolute_paths(tmp_path) -> None:
+    from holosoma_retargeting.path_utils import package_path
+
+    absolute_path = tmp_path / "custom_asset.txt"
+    assert package_path(absolute_path) == absolute_path
+
+
+def test_model_path_resolves_packaged_model() -> None:
+    from holosoma_retargeting.path_utils import model_path
+
+    path = model_path("g1/g1_29dof.urdf")
+    assert path.exists()
+
+
+def test_model_path_preserves_absolute_paths(tmp_path) -> None:
+    from holosoma_retargeting.path_utils import model_path
+
+    absolute_path = tmp_path / "custom_model.urdf"
+    assert model_path(absolute_path) == absolute_path
+
+
+def test_demo_data_path_resolves_packaged_demo_data() -> None:
+    from holosoma_retargeting.path_utils import demo_data_path
+
+    path = demo_data_path("height_dict.pkl")
+    assert path.exists()
+
+
+def test_demo_data_path_preserves_absolute_paths(tmp_path) -> None:
+    from holosoma_retargeting.path_utils import demo_data_path
+
+    absolute_path = tmp_path / "custom_demo_data.pkl"
+    assert demo_data_path(absolute_path) == absolute_path
+
+
 def test_calculate_scale_factor_is_independent_of_cwd(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
 
