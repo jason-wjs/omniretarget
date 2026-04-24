@@ -26,17 +26,19 @@ from holosoma_retargeting.config_types.data_type import (  # noqa: E402
 )
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
-from holosoma_retargeting.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
-from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
+from holosoma_retargeting.utils.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
+from holosoma_retargeting.utils.contact import extract_foot_sticking_sequence_velocity  # noqa: E402
+from holosoma_retargeting.utils.motion_io import load_intermimic_data  # noqa: E402
+from holosoma_retargeting.utils.motion_preprocessing import (  # noqa: E402
     calculate_scale_factor,
-    create_new_scene_xml_file,
-    create_scaled_multi_boxes_xml,
-    extract_foot_sticking_sequence_velocity,
-    load_intermimic_data,
     preprocess_motion_data,
-    transform_points_world_to_local,
     transform_y_up_to_z_up,
 )
+from holosoma_retargeting.utils.scene_assets import (  # noqa: E402
+    create_new_scene_xml_file,
+    create_scaled_multi_boxes_xml,
+)
+from holosoma_retargeting.utils.transforms import transform_points_world_to_local  # noqa: E402
 
 
 def create_task_constants(

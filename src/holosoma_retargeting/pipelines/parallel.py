@@ -19,11 +19,9 @@ from holosoma_retargeting.pipelines.object_setup import (
     setup_object_data,
 )
 from holosoma_retargeting.pipelines.task_setup import DEFAULT_DATA_FORMATS, create_task_constants
-from holosoma_retargeting.src.interaction_mesh_retargeter import InteractionMeshRetargeter
-from holosoma_retargeting.src.utils import (
-    extract_foot_sticking_sequence_velocity,
-    preprocess_motion_data,
-)
+from holosoma_retargeting.solver.interaction_mesh_retargeter import InteractionMeshRetargeter
+from holosoma_retargeting.utils.contact import extract_foot_sticking_sequence_velocity
+from holosoma_retargeting.utils.motion_preprocessing import preprocess_motion_data
 
 
 PARALLEL_SAVE_DIRS = {
@@ -111,7 +109,7 @@ def process_single_task(args):
         robot_config,
         motion_data_config,
         task_config,
-        retargeter,
+        retargeter_config,
         augmentation,
     ) = args
 
@@ -169,7 +167,9 @@ def process_single_task(args):
                 augmentation=(k > 0),
             )
 
-        retargeter_kwargs = build_retargeter_kwargs_from_config(retargeter, constants, object_urdf_path, task_type)
+        retargeter_kwargs = build_retargeter_kwargs_from_config(
+            retargeter_config, constants, object_urdf_path, task_type
+        )
         retargeter = InteractionMeshRetargeter(**retargeter_kwargs)
 
         if task_type == "robot_only":
@@ -184,7 +184,7 @@ def process_single_task(args):
                 ground_height_percentile=ground_height_percentile,
             )
         elif task_type in {"object_interaction", "climbing"}:
-            human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
+            human_joints, object_poses, _ = preprocess_motion_data(
                 human_joints, retargeter, toe_names, scale=smpl_scale, object_poses=object_poses
             )
 

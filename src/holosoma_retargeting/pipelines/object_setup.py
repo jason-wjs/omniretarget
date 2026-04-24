@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -10,17 +11,23 @@ from holosoma_retargeting.config_types.retargeter import RetargeterConfig
 from holosoma_retargeting.config_types.task import TaskConfig
 from holosoma_retargeting.pipelines.motion_loading import create_ground_points
 from holosoma_retargeting.pipelines.task_setup import TaskType
-from holosoma_retargeting.src.interaction_mesh_retargeter import InteractionMeshRetargeter
-from holosoma_retargeting.src.utils import (
-    augment_object_poses,
+from holosoma_retargeting.utils.motion_preprocessing import (
+    estimate_human_orientation,
+    extract_object_first_moving_frame,
+)
+from holosoma_retargeting.utils.object_mesh import load_object_data
+from holosoma_retargeting.utils.scene_assets import (
     create_new_scene_xml_file,
     create_scaled_multi_boxes_urdf,
     create_scaled_multi_boxes_xml,
-    estimate_human_orientation,
-    extract_object_first_moving_frame,
-    load_object_data,
+)
+from holosoma_retargeting.utils.transforms import (
+    augment_object_poses,
     transform_from_human_to_world,
 )
+
+if TYPE_CHECKING:
+    from holosoma_retargeting.solver.interaction_mesh_retargeter import InteractionMeshRetargeter
 
 
 logger = logging.getLogger(__name__)
@@ -40,9 +47,8 @@ def setup_object_data(
     object_scale_augmented: np.ndarray | None = None,
 ) -> tuple[np.ndarray | None, np.ndarray | None, str | None]:
     """Setup object-specific data for ground, object interaction, or climbing."""
-    object_scale_normal = np.array([1.0, 1.0, 1.0])
     if object_scale_augmented is None:
-        object_scale_augmented = np.array([1.0, 1.0, 1.2])
+        object_scale_augmented = _OBJECT_SCALE_AUGMENTED
     logger.info("Setting up object data for task: %s", task_type)
 
     if task_type == "robot_only":
@@ -67,8 +73,8 @@ def setup_object_data(
         scene_xml_file = object_dir / scene_xml_name
         constants.SCENE_XML_FILE = str(scene_xml_file)
 
-        np.random.seed(0)
         print("object mesh file: ", constants.OBJECT_MESH_FILE)
+        np.random.seed(0)
         object_local_pts, object_local_pts_demo_original = load_object_data(
             constants.OBJECT_MESH_FILE,
             smpl_scale=smpl_scale,
@@ -88,7 +94,7 @@ def setup_object_data(
             object_scale = object_scale_augmented
             object_local_pts = object_scale * object_local_pts_demo
         else:
-            object_scale = object_scale_normal
+            object_scale = _OBJECT_SCALE_NORMAL
             object_local_pts_demo = object_local_pts_demo_original
             object_local_pts = object_local_pts_demo
 

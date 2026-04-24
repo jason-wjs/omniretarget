@@ -23,11 +23,9 @@ from holosoma_retargeting.pipelines.task_setup import (
     create_task_constants,
     validate_config,
 )
-from holosoma_retargeting.src.interaction_mesh_retargeter import InteractionMeshRetargeter
-from holosoma_retargeting.src.utils import (
-    extract_foot_sticking_sequence_velocity,
-    preprocess_motion_data,
-)
+from holosoma_retargeting.solver.interaction_mesh_retargeter import InteractionMeshRetargeter
+from holosoma_retargeting.utils.contact import extract_foot_sticking_sequence_velocity
+from holosoma_retargeting.utils.motion_preprocessing import preprocess_motion_data
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -98,7 +96,7 @@ def run_retarget(cfg: RetargetingConfig) -> None:
             ground_height_percentile=ground_height_percentile,
         )
     elif task_type in {"object_interaction", "climbing"}:
-        human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
+        human_joints, object_poses, _ = preprocess_motion_data(
             human_joints,
             retargeter,
             toe_names,

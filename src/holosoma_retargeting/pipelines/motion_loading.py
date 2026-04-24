@@ -8,9 +8,9 @@ import numpy as np
 
 from holosoma_retargeting.config_types.data_type import MotionDataConfig
 from holosoma_retargeting.pipelines.task_setup import TaskType
-from holosoma_retargeting.src.utils import (
+from holosoma_retargeting.utils.motion_io import load_intermimic_data
+from holosoma_retargeting.utils.motion_preprocessing import (
     calculate_scale_factor,
-    load_intermimic_data,
     transform_y_up_to_z_up,
 )
 
