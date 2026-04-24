@@ -301,8 +301,8 @@ Useful package README content should move to the root README or to focused docs 
 The refactor should proceed from the outside inward:
 
 1. Stabilize repository boundaries, documentation boundaries, and baseline tests.
-2. Introduce the target documentation, command, configuration, and profile structure.
-3. Improve package-relative path handling through `path_utils.py` while preserving the current `models/` and `demo_data/` layouts.
+2. Improve package-relative path handling through `path_utils.py` while preserving the current `models/` and `demo_data/` layouts.
+3. Introduce the target command, configuration, and profile structure after package paths are cwd-independent.
 4. Move executable Python entrypoints into `cli/` and data-processing entrypoints into `cli/data_process/`.
 5. Consolidate typed configuration schemas and runtime resolution under `configs/`.
 6. Move robot defaults, motion format defaults, and joint mappings under `profiles/`.

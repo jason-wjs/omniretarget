@@ -865,11 +865,11 @@ Expected: PASS.
 
 **Step 5: Commit each utility slice separately**
 
-Run:
+Use a commit message that names the concrete utility responsibility moved in that slice. For example:
 
 ```bash
 git add src/holosoma_retargeting/utils src/holosoma_retargeting/src tests
-git commit -m "refactor: move <utility responsibility> helpers into utils"
+git commit -m "refactor: move pose transform helpers into utils"
 ```
 
 Repeat Task 9 for each utility slice. Stop when the remaining old utility files are either compatibility wrappers or still too coupled to move safely.
