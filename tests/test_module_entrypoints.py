@@ -11,8 +11,8 @@ from tests.path_helpers import REPO_ROOT
 
 
 REQUIRED_CONSOLE_SCRIPTS = {
-    "omniretarget-retarget": "holosoma_retargeting.cli.robot_retarget:entrypoint",
-    "omniretarget-batch": "holosoma_retargeting.cli.parallel_robot_retarget:entrypoint",
+    "omniretarget-retarget": "holosoma_retargeting.cli.single_retargeting:entrypoint",
+    "omniretarget-batch": "holosoma_retargeting.cli.batch_retargeting:entrypoint",
     "omniretarget-eval": "holosoma_retargeting.cli.eval_retargeting:entrypoint",
     "omniretarget-replay": "holosoma_retargeting.cli.viser_player:entrypoint",
     "omniretarget-replay-body-vel": "holosoma_retargeting.cli.viser_body_vel_player:entrypoint",
@@ -60,18 +60,18 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
     ("module_name", "reset_modules"),
     [
         (
-            "holosoma_retargeting.cli.robot_retarget",
+            "holosoma_retargeting.cli.single_retargeting",
             [
-                "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.cli.single_retargeting",
                 "holosoma_retargeting.retargeter",
                 "holosoma_retargeting.retargeter.retargeter",
             ],
         ),
         (
-            "holosoma_retargeting.cli.parallel_robot_retarget",
+            "holosoma_retargeting.cli.batch_retargeting",
             [
-                "holosoma_retargeting.cli.parallel_robot_retarget",
-                "holosoma_retargeting.cli.robot_retarget",
+                "holosoma_retargeting.cli.batch_retargeting",
+                "holosoma_retargeting.cli.single_retargeting",
                 "holosoma_retargeting.retargeter",
                 "holosoma_retargeting.retargeter.retargeter",
             ],
@@ -122,6 +122,8 @@ def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: st
         "holosoma_retargeting.examples",
         "holosoma_retargeting.examples.robot_retarget",
         "holosoma_retargeting.examples.parallel_robot_retarget",
+        "holosoma_retargeting.cli.robot_retarget",
+        "holosoma_retargeting.cli.parallel_robot_retarget",
         "holosoma_retargeting.data_conversion",
         "holosoma_retargeting.data_conversion.convert_data_format_mj",
         "holosoma_retargeting.data_conversion.viser_body_vel_player",

@@ -102,7 +102,7 @@ JOINTS_MAPPINGS = {
 
 **Important**: If you processed your data to the `.npz` format in Step 1 (with `global_joint_positions` and `height` keys), you can **skip this step entirely**. The code automatically handles `.npz` files with this structure via a fallback mechanism.
 
-If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `cli/robot_retarget.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
+If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `cli/single_retargeting.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
 
 ```python
 def load_motion_data(...):
@@ -135,7 +135,7 @@ def load_motion_data(...):
 **In `profiles/mappings.py`:**
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
-**In `cli/robot_retarget.py`** (only if needed):
+**In `cli/single_retargeting.py`** (only if needed):
 5. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
 
 

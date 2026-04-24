@@ -23,8 +23,8 @@ from holosoma_retargeting.configs.retargeting import ParallelRetargetingConfig  
 from holosoma_retargeting.configs.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 
-# Import reusable functions from robot_retarget.py
-from holosoma_retargeting.cli.robot_retarget import (  # noqa: E402
+# Import reusable functions from single_retargeting.py
+from holosoma_retargeting.cli.single_retargeting import (  # noqa: E402
     DEFAULT_DATA_FORMATS,
     build_retargeter_kwargs_from_config,
     create_task_constants,
@@ -143,7 +143,7 @@ def extract_task_name(file_path):
 def process_single_task(args):
     """Process a single task with all augmentations.
 
-    This function follows the same structure as main() in robot_retarget.py,
+    This function follows the same structure as main() in single_retargeting.py,
     but handles multiple augmentations in a loop for parallel processing.
     """
     (

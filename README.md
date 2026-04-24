@@ -67,7 +67,7 @@ bash scripts/eval.sh
 ### Replay
 
 ```bash
-bash scripts/replay_viser.sh
+bash scripts/viser_player.sh
 ```
 
 ## Verification

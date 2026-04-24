@@ -23,7 +23,7 @@ This note summarizes the current `robot_only` support added for Adam Pro in `hol
 
 Main files:
 - `src/holosoma_retargeting/configs/robot.py`
-- `src/holosoma_retargeting/cli/robot_retarget.py`
+- `src/holosoma_retargeting/cli/single_retargeting.py`
 
 ### 2) Adam Pro model refinements for retargeting XML/URDF flow
 
@@ -90,8 +90,8 @@ Main files:
 - This differs from non-OptiTrack defaults and improves floor grounding stability for OptiTrack data.
 
 Main files:
-- `src/holosoma_retargeting/cli/robot_retarget.py`
-- `src/holosoma_retargeting/cli/parallel_robot_retarget.py`
+- `src/holosoma_retargeting/cli/single_retargeting.py`
+- `src/holosoma_retargeting/cli/batch_retargeting.py`
 
 ## Bash Usage (`scripts/`)
 
@@ -142,11 +142,11 @@ bash scripts/retarget_batch_clips.sh
 ### 3) Replay retargeted result in Viser
 
 Script:
-- `scripts/replay_viser.sh`
+- `scripts/viser_player.sh`
 
 Run:
 ```bash
-bash scripts/replay_viser.sh
+bash scripts/viser_player.sh
 ```
 
 You can override any replay CLI arg by appending flags.

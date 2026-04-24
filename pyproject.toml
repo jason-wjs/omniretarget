@@ -34,8 +34,8 @@ dependencies = [
 ]
 
 [project.scripts]
-omniretarget-retarget = "holosoma_retargeting.cli.robot_retarget:entrypoint"
-omniretarget-batch = "holosoma_retargeting.cli.parallel_robot_retarget:entrypoint"
+omniretarget-retarget = "holosoma_retargeting.cli.single_retargeting:entrypoint"
+omniretarget-batch = "holosoma_retargeting.cli.batch_retargeting:entrypoint"
 omniretarget-eval = "holosoma_retargeting.cli.eval_retargeting:entrypoint"
 omniretarget-replay = "holosoma_retargeting.cli.viser_player:entrypoint"
 omniretarget-replay-body-vel = "holosoma_retargeting.cli.viser_body_vel_player:entrypoint"

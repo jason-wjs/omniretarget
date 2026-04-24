@@ -89,8 +89,8 @@ They should not own core retargeting algorithms, reusable low-level geometry/MuJ
 
 Expected early command modules include:
 
-- `cli/robot_retarget.py`
-- `cli/parallel_robot_retarget.py`
+- `cli/single_retargeting.py`
+- `cli/batch_retargeting.py`
 - `cli/eval_retargeting.py`
 - `cli/viser_player.py`
 - `cli/viser_body_vel_player.py`

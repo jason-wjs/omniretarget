@@ -3,8 +3,8 @@ from pathlib import Path
 from tests.path_helpers import REPO_ROOT
 
 
-def test_quantitative_eval_script_exists_with_adam_pro_robot_only_defaults() -> None:
-    script = REPO_ROOT / "scripts" / "quantitative_evaluation.sh"
+def test_eval_script_exists_with_adam_pro_robot_only_defaults() -> None:
+    script = REPO_ROOT / "scripts" / "eval.sh"
 
     assert script.is_file()
     content = script.read_text(encoding="utf-8")
