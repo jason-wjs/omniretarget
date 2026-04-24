@@ -18,9 +18,8 @@ Prepare `.npz` files for each motion sequence:
 ```bash
 # Install dependencies
 git clone https://github.com/nghorbani/human_body_prior.git
-pip install tqdm dotmap PyYAML omegaconf loguru
-cd human_body_prior/
-python setup.py develop
+uv pip install tqdm dotmap PyYAML omegaconf loguru
+uv pip install -e ./human_body_prior
 
 # Run data processing
 uv run omniretarget-prep-amass \
