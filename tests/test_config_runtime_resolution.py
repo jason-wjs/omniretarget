@@ -18,6 +18,19 @@ def test_resolve_retargeting_config_syncs_robot_and_motion_format() -> None:
     assert resolved.motion_data_config.data_format == "optitrack"
 
 
+def test_resolve_retargeting_config_uses_caller_resolved_data_format_without_mutating_original() -> None:
+    cfg = RetargetingConfig(robot="adam_pro", data_format=None, task_type="robot_only")
+
+    resolved = resolve_retargeting_config(cfg, data_format="smplh")
+
+    assert resolved.motion_data_config.robot_type == "adam_pro"
+    assert resolved.motion_data_config.data_format == "smplh"
+    assert cfg.data_format is None
+    assert cfg.robot_config.robot_type == "g1"
+    assert cfg.motion_data_config.robot_type == "g1"
+    assert cfg.motion_data_config.data_format == "smplh"
+
+
 def test_resolve_retargeting_config_preserves_matching_nested_overrides() -> None:
     robot_config = RobotConfig(robot_type="adam_pro", robot_urdf_file="custom_adam_pro.urdf")
     motion_data_config = MotionDataConfig(

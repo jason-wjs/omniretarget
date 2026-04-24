@@ -8,10 +8,13 @@ defaults first, then use these helpers to align nested runtime config objects.
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import TypeVar
 
 from holosoma_retargeting.config_types.data_type import MotionDataConfig
 from holosoma_retargeting.config_types.retargeting import RetargetingConfig
 from holosoma_retargeting.config_types.robot import RobotConfig
+
+_RetargetingConfigT = TypeVar("_RetargetingConfigT", bound=RetargetingConfig)
 
 
 def resolve_robot_config(robot: str, robot_config: RobotConfig) -> RobotConfig:
@@ -47,9 +50,9 @@ def resolve_robot_and_motion_configs(
 
 
 def resolve_retargeting_config(
-    cfg: RetargetingConfig,
+    cfg: _RetargetingConfigT,
     data_format: str | None = None,
-) -> RetargetingConfig:
+) -> _RetargetingConfigT:
     """Return ``cfg`` with nested configs aligned to resolved runtime selectors."""
     resolved_data_format = data_format if data_format is not None else cfg.data_format
     if resolved_data_format is None:
