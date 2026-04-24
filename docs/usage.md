@@ -16,7 +16,7 @@ cd src/holosoma_retargeting
 
 ## Motion Data Requirements
 
-The retargeting pipeline expects world joint positions with shape `(T, J, 3)`. For custom data formats, update the joint definitions and mappings in `src/holosoma_retargeting/config_types/data_type.py`.
+The retargeting pipeline expects world joint positions with shape `(T, J, 3)`. For custom data formats, update joint definitions and format constants in `src/holosoma_retargeting/profiles/motions.py`, and update robot mappings in `src/holosoma_retargeting/profiles/mappings.py`.
 
 ## Single Sequence Retargeting
 

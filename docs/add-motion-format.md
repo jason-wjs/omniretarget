@@ -30,9 +30,9 @@ python prep_amass_smplx_for_rt.py \
 ```
 Please follow the [AMASS](https://amass.is.tue.mpg.de/) instructions to download original data. And follow the [SMPL-X](https://smpl-x.is.tue.mpg.de/index.html) instructions to download SMPL-X models. For AMASS data, we tested on SMPL-X N format. The AMASS data structure should be `/path/to/amass/dataset_name/subject_name/*.npz`. For SMPL-X models, the structure should be `/path/to/models/smplx/SMPLX_NEUTRAL.npz`.
 
-### Step 2: Add Your Format to `config_types/data_type.py`
+### Step 2: Add Your Format Profile
 
-Edit **only this file** - all format configuration is centralized here!
+Edit the built-in profile modules under `src/holosoma_retargeting/profiles/`.
 
 #### 2.1: Define Joint Names
 
@@ -69,11 +69,11 @@ DEMO_JOINTS_REGISTRY: dict[str, list[str]] = {
 
 #### 2.3: Add Format-Specific Constants
 
-Add entries to these dictionaries.
+Add entries to the profile dictionaries.
 
 **Required:**
-- `TOE_NAMES_BY_FORMAT` - Must include toe joint names for foot-sticking constraint
-- `JOINTS_MAPPINGS` - Must include mappings for each robot type you support
+- `profiles/motions.py`: `TOE_NAMES_BY_FORMAT` must include toe joint names for foot-sticking constraint
+- `profiles/mappings.py`: `JOINTS_MAPPINGS` must include mappings for each robot type you support
 
 **Toe names** (used for foot sticking constraint):
 ```python
@@ -127,10 +127,12 @@ def load_motion_data(...):
 
 ### Summary: What You Need to Edit
 
-**In `config_types/data_type.py`** (main configuration file):
+**In `profiles/motions.py`:**
 1. ✅ **Required**: Create `MYFORMAT_DEMO_JOINTS` constant
 2. ✅ **Required**: Add to `DEMO_JOINTS_REGISTRY`
 3. ✅ **Required**: Add to `TOE_NAMES_BY_FORMAT`
+
+**In `profiles/mappings.py`:**
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
 **In `examples/robot_retarget.py`** (only if needed):

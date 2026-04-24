@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 LAFAN_DEMO_JOINTS = [
     "Hips",
     "RightUpLeg",
@@ -200,6 +202,32 @@ DEMO_JOINTS_REGISTRY: dict[str, list[str]] = {
     "optitrack": OPTITRACK_DEMO_JOINTS,
 }
 
+TOE_NAMES_BY_FORMAT = {
+    "lafan": ["LeftToeBase", "RightToeBase"],
+    "smplh": ["L_Toe", "R_Toe"],
+    "mocap": ["LeftToeBase", "RightToeBase"],
+    "smplx": ["L_Foot", "R_Foot"],
+    "optitrack": ["LeftToeBase", "RightToeBase"],
+}
+
+
+class FormatConstants(TypedDict, total=False):
+    default_scale_factor: float | None
+    default_human_height: float | None
+
+
+DATA_FORMAT_CONSTANTS: dict[str, FormatConstants] = {
+    "lafan": {
+        "default_scale_factor": 1.27 / 1.7,
+    },
+    "mocap": {
+        "default_human_height": 1.78,
+    },
+    "optitrack": {
+        "default_human_height": 1.7,
+    },
+}
+
 __all__ = [
     "LAFAN_DEMO_JOINTS",
     "SMPLH_DEMO_JOINTS",
@@ -207,4 +235,7 @@ __all__ = [
     "OPTITRACK_DEMO_JOINTS",
     "SMPLX_DEMO_JOINTS",
     "DEMO_JOINTS_REGISTRY",
+    "TOE_NAMES_BY_FORMAT",
+    "FormatConstants",
+    "DATA_FORMAT_CONSTANTS",
 ]

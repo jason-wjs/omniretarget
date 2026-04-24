@@ -180,7 +180,7 @@ def validate_config(cfg: RetargetingConfig) -> None:
         raise ValueError(
             f"Unknown data_format: '{cfg.data_format}'. "
             f"Available formats: {available}. "
-            f"Add your format to DEMO_JOINTS_REGISTRY in config_types/data_type.py"
+            f"Add your format to DEMO_JOINTS_REGISTRY in profiles/motions.py"
         )
 
     # Task-specific format requirements

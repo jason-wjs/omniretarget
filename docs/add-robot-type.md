@@ -5,8 +5,8 @@ This guide shows you how to add a new robot type (e.g., "myrobot") to the retarg
 ### Overview
 
 The process requires editing **2 main files**:
-1. **`config_types/robot.py`** - Robot configuration and defaults
-2. **`config_types/data_type.py`** - Joint mappings from human joints to robot joints
+1. **`profiles/robots.py`** - Built-in robot defaults
+2. **`profiles/mappings.py`** - Joint mappings from human joints to robot joints
 
 You'll also need to prepare robot model files (URDF/XML).
 
@@ -24,16 +24,16 @@ Place your robot files in this directory:
 
 **Note**: The URDF file path follows the pattern `models/{robot_type}/{robot_type}_{dof}dof.urdf`. If your files use a different naming convention, you can override the path via command line using `--robot-config.robot-urdf-file` (e.g., `--robot-config.robot-urdf-file models/myrobot/custom_name.urdf`).
 
-### Step 2: Add Robot Configuration in `config_types/robot.py`
+### Step 2: Add Robot Configuration in `profiles/robots.py`
 
 Edit this file to register your robot type.
 
 #### 2.1: Add Robot Defaults
 
-Add your robot to the `_ROBOT_DEFAULTS` dictionary:
+Add your robot to the `ROBOT_DEFAULTS` dictionary:
 
 ```python
-_ROBOT_DEFAULTS: dict[str, RobotDefaults] = {
+ROBOT_DEFAULTS: dict[str, RobotDefaults] = {
     "g1": {"robot_dof": 29, "robot_height": 1.32, "object_name": "ground"},
     "t1": {"robot_dof": 23, "robot_height": 1.2, "object_name": "ground"},
     "myrobot": {"robot_dof": 25, "robot_height": 1.4, "object_name": "ground"},  # ← Add your robot
@@ -51,43 +51,40 @@ You must add these properties for your robot type:
 
 **Foot Sticking Links** (required, used for foot-sticking constraint):
 ```python
-def _foot_sticking_links(self) -> list[str]:
+FOOT_STICKING_LINKS_BY_ROBOT = {
     # ... existing code ...
-    if self.robot_type == "myrobot":
-        return [
-            "left_foot_link_1",
-            "right_foot_link_1",
-            # ... list all foot contact links
-        ]
-    raise ValueError(f"Invalid robot type: {self.robot_type}")
+    "myrobot": (
+        "left_foot_link_1",
+        "right_foot_link_1",
+        # ... list all foot contact links
+    ),
+}
 ```
 
 **Joint Limits** (optional, for optimization constraints - only if you need tighter limits than XML):
 ```python
-def _manual_lb(self) -> dict[str, float]:
+MANUAL_LB_BY_ROBOT = {
     # ... existing code ...
-    if self.robot_type == "myrobot":
-        base.update({
-            "joint_index": lower_bound_value,
-            # ... add joint limits for your robot
-        })
-    return base
+    "myrobot": {
+        "joint_index": lower_bound_value,
+        # ... add joint limits for your robot
+    },
+}
 ```
 
 ```python
-def _manual_ub(self) -> dict[str, float]:
+MANUAL_UB_BY_ROBOT = {
     # ... existing code ...
-    if self.robot_type == "myrobot":
-        base.update({
-            "joint_index": upper_bound_value,
-            # ... add joint limits for your robot
-        })
-    return base
+    "myrobot": {
+        "joint_index": upper_bound_value,
+        # ... add joint limits for your robot
+    },
+}
 ```
 
 **Note**: Manual limits override specific joints that need tighter constraints. The XML file already contains joint limits for all joints, so you only need to specify manual limits for joints that need special handling beyond the XML limits (e.g., quaternion bounds for floating base, or tighter constraints for specific joints like waist or wrists). Most joints will use their limits from the XML file automatically. If your robot doesn't need any special joint limit overrides, you can skip adding robot-specific limits - the base quaternion bounds will be used automatically.
 
-### Step 3: Add Joint Mappings in `config_types/data_type.py`
+### Step 3: Add Joint Mappings in `profiles/mappings.py`
 
 For each human motion data format you want to support, add joint mappings from human joints to your robot joints.
 
@@ -137,12 +134,12 @@ JOINTS_MAPPINGS = {
 
 ### Summary: What You Need to Edit
 
-**In `config_types/robot.py`:**
-1. ✅ Add entry to `_ROBOT_DEFAULTS` dictionary (required)
-2. ✅ Add `_foot_sticking_links()` case (required)
-3. ⚠️ Add `_manual_lb()` / `_manual_ub()` cases (optional, only if you need tighter limits than XML)
+**In `profiles/robots.py`:**
+1. ✅ Add entry to `ROBOT_DEFAULTS` dictionary (required)
+2. ✅ Add entry to `FOOT_STICKING_LINKS_BY_ROBOT` (required)
+3. ⚠️ Add entries to `MANUAL_LB_BY_ROBOT` / `MANUAL_UB_BY_ROBOT` (optional, only if you need tighter limits than XML)
 
-**In `config_types/data_type.py`:**
+**In `profiles/mappings.py`:**
 7. ✅ Add joint mappings to `JOINTS_MAPPINGS` for each `(data_format, "myrobot")` combination (required)
 
 **File System:**

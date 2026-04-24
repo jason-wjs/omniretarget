@@ -1,5 +1,8 @@
+import numpy as np
+
 from holosoma_retargeting.config_types import data_type as config_data_type
 from holosoma_retargeting.config_types import robot as config_robot
+from holosoma_retargeting.config_types.robot import RobotConfig
 from holosoma_retargeting.profiles.mappings import JOINTS_MAPPINGS
 from holosoma_retargeting.profiles.motions import DEMO_JOINTS_REGISTRY
 from holosoma_retargeting.profiles import mappings as profile_mappings
@@ -21,8 +24,50 @@ def test_config_types_motion_imports_alias_profile_objects() -> None:
     assert config_data_type.OPTITRACK_DEMO_JOINTS is profile_motions.OPTITRACK_DEMO_JOINTS
     assert config_data_type.SMPLX_DEMO_JOINTS is profile_motions.SMPLX_DEMO_JOINTS
     assert config_data_type.DEMO_JOINTS_REGISTRY is profile_motions.DEMO_JOINTS_REGISTRY
+    assert config_data_type.TOE_NAMES_BY_FORMAT is profile_motions.TOE_NAMES_BY_FORMAT
+    assert config_data_type.DATA_FORMAT_CONSTANTS is profile_motions.DATA_FORMAT_CONSTANTS
     assert config_data_type.JOINTS_MAPPINGS is profile_mappings.JOINTS_MAPPINGS
 
 
 def test_config_types_robot_defaults_alias_profile_object() -> None:
     assert config_robot._ROBOT_DEFAULTS is profile_robots.ROBOT_DEFAULTS
+    assert config_robot._FOOT_STICKING_LINKS_BY_ROBOT is profile_robots.FOOT_STICKING_LINKS_BY_ROBOT
+    assert config_robot._MANUAL_LB_BY_ROBOT is profile_robots.MANUAL_LB_BY_ROBOT
+    assert config_robot._MANUAL_UB_BY_ROBOT is profile_robots.MANUAL_UB_BY_ROBOT
+    assert config_robot._MANUAL_COST_BY_ROBOT is profile_robots.MANUAL_COST_BY_ROBOT
+    assert config_robot._NOMINAL_TRACKING_INDICES_BY_ROBOT is profile_robots.NOMINAL_TRACKING_INDICES_BY_ROBOT
+
+
+def test_robot_profile_defaults_preserve_mutable_return_semantics() -> None:
+    g1 = RobotConfig(robot_type="g1")
+    assert g1.FOOT_STICKING_LINKS == list(profile_robots.FOOT_STICKING_LINKS_BY_ROBOT["g1"])
+    assert g1.MANUAL_LB["3"] == -1.0
+    assert g1.MANUAL_LB["20"] == -0.3
+    assert g1.MANUAL_UB["25"] == 1.4
+    assert g1.MANUAL_COST == {"19": 0.2, "20": 0.2}
+
+    t1 = RobotConfig(robot_type="t1")
+    assert t1.MANUAL_LB == {"3": -1.0, "4": -1.0, "5": -1.0, "6": -1.0}
+    assert t1.MANUAL_UB == {"3": 1.0, "4": 1.0, "5": 1.0, "6": 1.0}
+    assert t1.MANUAL_COST == {}
+    assert t1.NOMINAL_TRACKING_INDICES.tolist() == [*range(7), *range(11, 23)]
+
+    assert g1.MANUAL_LB is not g1.MANUAL_LB
+    assert g1.FOOT_STICKING_LINKS is not g1.FOOT_STICKING_LINKS
+    assert g1.NOMINAL_TRACKING_INDICES is not g1.NOMINAL_TRACKING_INDICES
+
+    manual_lb_override = {"7": -0.5}
+    manual_ub_override = {"7": 0.5}
+    manual_cost_override = {"7": 0.1}
+    nominal_override = np.array([1, 2, 3])
+    cfg = RobotConfig(
+        robot_type="g1",
+        manual_lb=manual_lb_override,
+        manual_ub=manual_ub_override,
+        manual_cost=manual_cost_override,
+        nominal_tracking_indices=nominal_override,
+    )
+    assert cfg.MANUAL_LB is manual_lb_override
+    assert cfg.MANUAL_UB is manual_ub_override
+    assert cfg.MANUAL_COST is manual_cost_override
+    assert cfg.NOMINAL_TRACKING_INDICES is nominal_override

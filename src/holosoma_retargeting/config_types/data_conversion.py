@@ -128,7 +128,7 @@ class DataConversionConfig:
     """Motion data configuration (nested - can override data_format, robot_type, etc.
     via --motion-data-config.data-format)."""
 
-    # --- Joint names, follow the pattern in holosoma_retargeting/config_types/robot.py ---
+    # --- Joint names, follow the profile pattern in holosoma_retargeting/profiles/robots.py ---
     joint_names: list[str] | None = None
     """Joint names to use."""
 

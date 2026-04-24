@@ -3,45 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any
 
 from holosoma_retargeting.profiles.mappings import JOINTS_MAPPINGS
 from holosoma_retargeting.profiles.motions import (
+    DATA_FORMAT_CONSTANTS,
     DEMO_JOINTS_REGISTRY,
+    TOE_NAMES_BY_FORMAT,
+    FormatConstants,
     LAFAN_DEMO_JOINTS,
     MOCAP_DEMO_JOINTS,
     OPTITRACK_DEMO_JOINTS,
     SMPLH_DEMO_JOINTS,
     SMPLX_DEMO_JOINTS,
 )
-
-# Data format specific constants
-TOE_NAMES_BY_FORMAT = {
-    "lafan": ["LeftToeBase", "RightToeBase"],
-    "smplh": ["L_Toe", "R_Toe"],
-    "mocap": ["LeftToeBase", "RightToeBase"],
-    "smplx": ["L_Foot", "R_Foot"],
-    "optitrack": ["LeftToeBase", "RightToeBase"],
-}
-
-
-# Data format specific scaling/preprocessing constants
-class FormatConstants(TypedDict, total=False):
-    default_scale_factor: float | None
-    default_human_height: float | None
-
-
-DATA_FORMAT_CONSTANTS: dict[str, FormatConstants] = {
-    "lafan": {
-        "default_scale_factor": 1.27 / 1.7,
-    },
-    "mocap": {
-        "default_human_height": 1.78,
-    },
-    "optitrack": {
-        "default_human_height": 1.7,
-    },
-}
 
 # Type alias for data formats - use str to allow dynamic data formats via DEMO_JOINTS_REGISTRY
 # No need to update this when adding new formats - just add to DEMO_JOINTS_REGISTRY above
@@ -55,7 +30,7 @@ def _validate_data_format(data_format: str) -> None:
         raise ValueError(
             f"Invalid data_format: '{data_format}'. "
             f"Available data formats: {available}. "
-            f"Add your format to DEMO_JOINTS_REGISTRY in config_types/data_type.py"
+            f"Add your format to DEMO_JOINTS_REGISTRY in profiles/motions.py"
         )
 
 
@@ -87,7 +62,7 @@ class MotionDataConfig:
             raise ValueError(
                 f"Unknown data_format: {self.data_format}. "
                 f"Available formats: {list(DEMO_JOINTS_REGISTRY.keys())}. "
-                f"Add your format to DEMO_JOINTS_REGISTRY in config_types/data_type.py"
+                f"Add your format to DEMO_JOINTS_REGISTRY in profiles/motions.py"
             )
         return DEMO_JOINTS_REGISTRY[self.data_format]
 
@@ -109,7 +84,7 @@ class MotionDataConfig:
         if self.data_format not in TOE_NAMES_BY_FORMAT:
             raise ValueError(
                 f"Toe names not defined for data_format: {self.data_format}. "
-                f"Add entry to TOE_NAMES_BY_FORMAT in config_types/data_type.py"
+                f"Add entry to TOE_NAMES_BY_FORMAT in profiles/motions.py"
             )
         return TOE_NAMES_BY_FORMAT[self.data_format]
 

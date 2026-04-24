@@ -25,7 +25,7 @@ class RetargetingConfig:
 
     # --- top-level run knobs ---
     robot: str = "g1"
-    """Robot type. Use str to allow dynamic robot types via _ROBOT_DEFAULTS."""
+    """Robot type. Use str to allow dynamic robot types via profiles.robots.ROBOT_DEFAULTS."""
 
     data_format: str | None = None
     """Motion data format. Auto-determined by task_type if None.
