@@ -3,30 +3,39 @@ from __future__ import annotations
 import time
 from types import ModuleType
 
-import cvxpy as cp  # type: ignore[import-not-found]
 import mujoco  # type: ignore[import-not-found]
 import numpy as np
 import trimesh
 import viser  # type: ignore[import-not-found]
 import yourdfpy  # type: ignore[import-untyped]
-from scipy import sparse as sp  # type: ignore[import-untyped]
-from scipy.spatial.transform import Rotation  # type: ignore[import-untyped]
 from tqdm import tqdm
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
 # Import with type ignore for mypy compatibility
-from holosoma_retargeting.src.mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
-    _world_mesh_from_geom,
+from holosoma_retargeting.retargeter.constraint import (  # noqa: E402
+    build_transform_qdot_to_qvel_fast,
+    calc_contact_jacobian_from_point,
+    calc_manipulator_jacobians,
+    compute_jacobian_for_contact_relative,
+    get_geometry_name,
+    prefilter_pairs_with_mj_collision,
+    update_jacobians_and_phis_from_q,
+    world_to_body_frame,
 )
-from holosoma_retargeting.utils.interaction_mesh import (  # noqa: E402
+from holosoma_retargeting.retargeter.interaction_mesh import (  # noqa: E402
     calculate_laplacian_coordinates,
-    calculate_laplacian_matrix,
     create_interaction_mesh,
     get_adjacency_list,
+)
+from holosoma_retargeting.retargeter.solver import solve_sqp_step  # noqa: E402
+from holosoma_retargeting.utils.mujoco_mesh import (  # noqa: E402
+    _world_mesh_from_geom,
+)
+from holosoma_retargeting.utils.transform import (  # noqa: E402
     transform_points_local_to_world,
     transform_points_world_to_local,
 )
-from holosoma_retargeting.src.viser_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
+from holosoma_retargeting.utils.viser_playback import (  # noqa: E402
     create_motion_control_sliders,
 )
 
@@ -497,147 +506,20 @@ class InteractionMeshRetargeter:
             obj_original: the original object pose (used for contact matching).
             init_t: the current time step is the first time step.
         """
-        assert len(q_a_n_last) == self.nq_a
-
-        # Lock the object pose and set the current robot slice to last accepted solution
-        q = np.copy(q_locked)
-        q[self.q_a_indices] = q_a_n_last
-
-        # Compute Laplacian pieces
-        J_OC_dict, p_OC_dict, _ = self._calc_manipulator_jacobians(
-            q, links=self.laplacian_match_links, obj_frame=(self.object_name != "ground")
+        return solve_sqp_step(
+            self,
+            q_locked=q_locked,
+            q_a_n_last=q_a_n_last,
+            q_t_last=q_t_last,
+            target_laplacian=target_laplacian,
+            adj_list=adj_list,
+            obj_pts_local=obj_pts_local,
+            foot_sticking=foot_sticking,
+            w_nominal_tracking=w_nominal_tracking,
+            q_a_nominal=q_a_nominal,
+            verbose=verbose,
+            init_t=init_t,
         )
-        robot_link_keys = list(self.laplacian_match_links.keys())
-        V_r = len(robot_link_keys)
-        V_o = len(obj_pts_local)
-        V = V_r + V_o
-
-        # Stack Jacobians for robot points
-        J_V = np.zeros((3 * V, self.nq_a))
-        for i, key in enumerate(robot_link_keys):
-            J_V[3 * i : 3 * (i + 1), :] = J_OC_dict[key]
-
-        robot_pts_local = np.array([p_OC_dict[k] for k in robot_link_keys])
-        vertices = np.vstack([robot_pts_local, obj_pts_local])  # (V x 3)
-
-        L = calculate_laplacian_matrix(vertices, adj_list)  # (V x V), EXPECT SPARSE OR SMALL
-        if not sp.issparse(L):
-            L = sp.csr_matrix(L)
-
-        Kron = sp.kron(L, sp.eye(3, format="csr"), format="csr")
-        J_L = Kron @ J_V
-
-        lap0 = L @ vertices
-        lap0_vec = lap0.reshape(-1)  # (3V,)
-        target_lap_vec = target_laplacian.reshape(-1)  # (3V,)
-
-        w_v = (self.laplacian_weights * np.ones(V)).astype(float)  # (V,)
-        sqrt_w3 = np.sqrt(np.repeat(w_v, 3))
-
-        # Decision variables
-        dqa = cp.Variable(len(self.q_a_indices), name="dqa")
-        lap_var = cp.Variable(3 * V, name="laplacian")
-
-        # Constraints list
-        constraints = []
-
-        # Linear equality
-        constraints += [cp.Constant(J_L[:, self.q_a_indices]) @ dqa - lap_var == -lap0_vec]
-
-        # Foot sticking
-        if (self.q_a_init_idx < 12) and self.activate_foot_sticking:
-            J_WF_dict, p_WF_dict, _ = self._calc_manipulator_jacobians(q, links=self.foot_links, obj_frame=False)
-            _, p_WF_t_last_dict, _ = self._calc_manipulator_jacobians(q_t_last, links=self.foot_links, obj_frame=False)
-            # Identify 'left' and 'right' flags from provided keys
-            left_key = right_key = None
-            for key in foot_sticking:
-                if key.lower().startswith("l"):
-                    left_key = key
-                elif key.lower().startswith("r"):
-                    right_key = key
-            if left_key is None or right_key is None:
-                raise ValueError("foot_sticking must include one left* and one right* key")
-
-            for key, J_WF in J_WF_dict.items():
-                apply_left = ("left" in key) and foot_sticking[left_key]
-                apply_right = ("right" in key) and foot_sticking[right_key]
-                if apply_left or apply_right:
-                    p_lb = p_WF_t_last_dict[key] - p_WF_dict[key] - self.foot_sticking_tolerance
-                    p_ub = p_lb + 2 * self.foot_sticking_tolerance  # symmetric window
-
-                    Jxy = J_WF[:2, self.q_a_indices]  # (2 x nq_act)
-                    constraints += [
-                        Jxy @ dqa >= p_lb[:2],
-                        Jxy @ dqa <= p_ub[:2],
-                    ]
-
-        # Non-penetration constraints
-        Js, phis = self._update_jacobians_and_phis_from_q(q)
-        for key, phi in phis.items():
-            Ja_n_full = Js[key]
-            Ja_n = Ja_n_full[self.q_a_indices]
-            rhs = -phi - self.penetration_tolerance
-            constraints += [Ja_n @ dqa >= rhs]
-
-        # Joint limits constraints (actuated)
-        if self.activate_joint_limits:
-            constraints += [
-                dqa >= (self.q_a_lb - q_a_n_last),
-                dqa <= (self.q_a_ub - q_a_n_last),
-            ]
-
-        # Step size constraints (Lorentz cone)
-        constraints += [cp.SOC(self.step_size, dqa)]
-
-        # Objective
-        obj_terms = []
-
-        obj_terms.append(cp.sum_squares(cp.multiply(sqrt_w3, lap_var - target_lap_vec)))
-
-        # nominal tracking for selected indices
-        if (w_nominal_tracking > 0) and (q_a_nominal is not None):
-            idx = np.array(self.track_nominal_indices, dtype=int)
-            if idx.size > 0:
-                z = dqa[idx] - (q_a_nominal[idx] - q_a_n_last[idx])
-                obj_terms.append(w_nominal_tracking * cp.sum_squares(z))
-
-        # Q_diag cost
-        Qd = np.asarray(self.Q_diag, dtype=float).reshape(-1)
-        obj_terms.append(cp.sum_squares(cp.multiply(np.sqrt(Qd), dqa + q_a_n_last)))
-
-        # Smoothness cost
-        dqa_smooth = q_t_last[self.q_a_indices] - q_a_n_last
-        if np.isscalar(self.smooth_weight):
-            obj_terms.append(self.smooth_weight * cp.sum_squares(dqa - dqa_smooth))
-        else:
-            Wsmooth = np.asarray(self.smooth_weight, dtype=float)
-            if Wsmooth.ndim == 1:
-                obj_terms.append(cp.sum_squares(cp.multiply(np.sqrt(Wsmooth), dqa - dqa_smooth)))
-            else:
-                # if a full matrix was supplied, fall back to quad_form
-                obj_terms.append(cp.quad_form(dqa - dqa_smooth, Wsmooth))
-
-        problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
-
-        # -------- Solve with Clarabel --------
-        solver_kwargs = {"verbose": verbose}
-        problem.solve(solver=cp.CLARABEL, **solver_kwargs)
-        if (problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE)) and init_t:
-            constraints = [c for c in constraints if not isinstance(c, cp.constraints.second_order.SOC)]
-            problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
-            problem.solve(solver=cp.CLARABEL, **solver_kwargs)
-
-        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
-            raise RuntimeError(f"CVXPY solve failed: {problem.status}")
-
-        dqa_star = dqa.value
-        cost = problem.value
-
-        q_star = np.copy(q)
-        q_star[self.q_a_indices] = dqa_star + q_a_n_last
-        q_star[3:7] /= np.linalg.norm(q_star[3:7]) + 1e-12
-
-        return q_star, cost
 
     def iterate(
         self,
@@ -813,239 +695,27 @@ class InteractionMeshRetargeter:
         )
 
     def _compute_jacobian_for_contact_relative(self, geom1, geom2, geom1_name, geom2_name, fromto, dist):
-        # Get closest points from fromto buffer
-        pos1 = fromto[:3]  # closest point on geom1
-        pos2 = fromto[3:]  # closest point on geom2
-
-        v = pos1 - pos2
-        norm_v = np.linalg.norm(v)
-
-        if norm_v > 1e-12:
-            nhat_BA_W = np.sign(dist) * (v / norm_v)
-        # Degenerate: points coincide. Heuristics fallback.
-        # If one side is a plane/ground, use its known normal.
-        elif "ground" in geom2_name.lower():
-            nhat_BA_W = np.array([0.0, 0.0, 1.0]) * (1.0 if dist >= 0 else -1.0)
-        elif "ground" in geom1_name.lower():
-            nhat_BA_W = np.array([0.0, 0.0, -1.0]) * (1.0 if dist >= 0 else -1.0)
-        else:
-            nhat_BA_W = np.array([0.0, 0.0, 0.0])
-
-        J_bodyA = self._calc_contact_jacobian_from_point(geom1.bodyid, pos1, input_world=True)
-        J_bodyB = self._calc_contact_jacobian_from_point(geom2.bodyid, pos2, input_world=True)
-
-        # Compute relative Jacobian
-        Jc = J_bodyA - J_bodyB
-
-        return nhat_BA_W @ Jc
+        return compute_jacobian_for_contact_relative(self, geom1, geom2, geom1_name, geom2_name, fromto, dist)
 
     def _prefilter_pairs_with_mj_collision(self, threshold: float):
-        m, d = self.robot_model, self.robot_data
-        ngeom = m.ngeom
-
-        self._geom_names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(ngeom)]
-
-        if not hasattr(self, "_saved_margins"):
-            self._saved_margins = np.empty_like(m.geom_margin)
-        self._saved_margins[:] = m.geom_margin
-
-        m.geom_margin[:] = threshold
-
-        # Run collision. This runs broad→narrow and fills d.contact.
-        mujoco.mj_collision(m, d)
-
-        # Collect unique candidate pairs that involve at least one masked geom
-        candidates = set()
-        for k in range(d.ncon):
-            c = d.contact[k]
-            g1, g2 = int(c.geom1), int(c.geom2)
-            if g1 < 0 or g2 < 0:
-                continue
-            candidates.add((min(g1, g2), max(g1, g2)))
-
-        # Restore margins to keep physics untouched
-        m.geom_margin[:] = self._saved_margins
-
-        return candidates
+        return prefilter_pairs_with_mj_collision(self, threshold)
 
     def _update_jacobians_and_phis_from_q(self, q: np.ndarray):
-        self.robot_data.qpos[:] = q
-
-        mujoco.mj_forward(self.robot_model, self.robot_data)  # kinematics & AABBs valid
-
-        m, d = self.robot_model, self.robot_data
-        threshold = float(self.collision_detection_threshold)
-
-        # 1) Fast prefilter via mj_collision with temporary margins
-        candidates = self._prefilter_pairs_with_mj_collision(threshold)
-
-        Js, phis = {}, {}
-        fromto = np.zeros(6, dtype=float)
-
-        # 2) Precise distance only on candidates (early-exit at threshold)
-        contype, conaff = m.geom_contype, m.geom_conaffinity
-
-        def masks_ok(g1, g2):
-            if contype[g1] == 0 and conaff[g1] == 0:
-                return False
-            if contype[g2] == 0 and conaff[g2] == 0:
-                return False
-            if self.object_name in self._geom_names[g1] and "ground" in self._geom_names[g2]:
-                return False
-            if "ground" in self._geom_names[g1] and self.object_name in self._geom_names[g2]:
-                return False
-            return (
-                self.object_name in self._geom_names[g1]
-                or self.object_name in self._geom_names[g2]
-                or "ground" in self._geom_names[g1]
-                or "ground" in self._geom_names[g2]
-            )
-
-        for g1, g2 in candidates:
-            # Optional: keep your own filters here (e.g., skip object-ground, only keep interaction with object/ground)
-            if not masks_ok(g1, g2):
-                continue
-
-            fromto[:] = 0.0
-            dist = mujoco.mj_geomDistance(m, d, g1, g2, threshold, fromto)
-            if dist <= threshold:
-                J_rel = self._compute_jacobian_for_contact_relative(
-                    m.geom(g1), m.geom(g2), self._geom_names[g1], self._geom_names[g2], fromto, dist
-                )
-                Js[(g1, g2)] = J_rel
-                phis[(g1, g2)] = float(dist)
-
-                # For debug
-                # self.draw_mesh_pair_with_contact(self.robot_model, self.robot_data, g1, g2,   \
-                #     self._geom_names[g1], self._geom_names[g2], fromto=fromto)
-
-        return Js, phis
+        return update_jacobians_and_phis_from_q(self, q)
 
     def _world_to_body_frame(self, p_w: np.ndarray, body_idx: int) -> np.ndarray:
         """Transform point from world frame to body frame."""
-        p_w = np.asarray(p_w).reshape(3)
-        body_pos = self.robot_data.xpos[body_idx].reshape(3)
-        body_mat = self.robot_data.xmat[body_idx].reshape(3, 3)
-        return body_mat.T @ (p_w - body_pos)
+        return world_to_body_frame(self, p_w, body_idx)
 
     def _get_geometry_name(self, geom_id: int) -> str:
         """Get geometry name from ID."""
-        return mujoco.mj_id2name(self.robot_model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
+        return get_geometry_name(self, geom_id)
 
     def _build_transform_qdot_to_qvel_fast(self, use_world_omega=True):
-        """
-        Return T(q) (nv x nq) such that v = T(q) @ qdot.
-        - Free root: qpos=[x,y,z, qw,qx,qy,qz], qvel=[vx,vy,vz, ωx,ωy,ωz]
-        where ω and v are WORLD-expressed in MuJoCo.
-        - 23 hinge joints: v = qdot.
-
-        If use_world_omega=False, uses BODY-omega mapping (for debugging).
-        """
-        nq, nv = self.robot_model.nq, self.robot_model.nv
-        T = np.zeros((nv, nq), dtype=float)
-
-        # ---- root free joint (assumed joint 0) ----
-        j0 = 0
-        assert self.robot_model.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE
-        qadr = self.robot_model.jnt_qposadr[j0]  # 0
-        dadr = self.robot_model.jnt_dofadr[j0]  # 0
-
-        # Linear block: v_lin = xyz_dot
-        T[dadr : dadr + 3, qadr : qadr + 3] = np.eye(3)
-
-        # Angular block: ω_* = 2 * E_*(q) * quat_dot
-        w, x, y, z = self.robot_data.qpos[qadr + 3 : qadr + 7]
-
-        def get_e_world(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, qz, -qy],
-                    [-qy, -qz, qw, qx],
-                    [-qz, qy, -qx, qw],
-                ]
-            )
-
-        def get_e_body(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, -qz, qy],
-                    [-qy, qz, qw, -qx],
-                    [-qz, -qy, qx, qw],
-                ]
-            )
-
-        E_fn = get_e_world if use_world_omega else get_e_body
-
-        # ---- FREE joint #1 (human/root): use model addresses, but this should be the first joint ----
-        j_free1 = 0
-        assert self.robot_model.jnt_type[j_free1] == mujoco.mjtJoint.mjJNT_FREE
-        qadr1 = int(self.robot_model.jnt_qposadr[j_free1])  # expect 0
-        dadr1 = int(self.robot_model.jnt_dofadr[j_free1])  # start of its 6 qvel dofs
-
-        qw, qx, qy, qz = self.robot_data.qpos[qadr1 + 3 : qadr1 + 7]
-        E1 = 2.0 * E_fn(qw, qx, qy, qz)
-        # linear-first: v_W = rdot, ω_W = 2E(q) * quat_dot
-        T[dadr1 + 0 : dadr1 + 3, qadr1 + 0 : qadr1 + 3] = np.eye(3)  # v block
-        T[dadr1 + 3 : dadr1 + 6, qadr1 + 3 : qadr1 + 7] = E1  # ω block
-
-        if self.has_dynamic_object:
-            # ---- FREE joint #2 (object): assume it's the last FREE joint; fill its 6x7 block ----
-            # Find it by type (safer than hardcoding tail indices)
-            free_joints = [
-                j for j in range(self.robot_model.njnt) if self.robot_model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE
-            ]
-            assert len(free_joints) >= 2, "Expected two FREE joints (human + object)."
-            j_free2 = free_joints[1]  # second FREE joint
-            qadr2 = int(self.robot_model.jnt_qposadr[j_free2])  # expect nq-7
-            dadr2 = int(self.robot_model.jnt_dofadr[j_free2])  # its 6 qvel dofs (often at nv-6)
-
-            qw, qx, qy, qz = self.robot_data.qpos[qadr2 + 3 : qadr2 + 7]
-            E2 = 2.0 * E_fn(qw, qx, qy, qz)
-            T[dadr2 + 0 : dadr2 + 3, qadr2 + 0 : qadr2 + 3] = np.eye(3)  # v block
-            T[dadr2 + 3 : dadr2 + 6, qadr2 + 3 : qadr2 + 7] = E2  # ω block
-
-        # ---- remaining hinge/slide joints: v = qdot ----
-        for j in range(1, self.robot_model.njnt):
-            jt = self.robot_model.jnt_type[j]
-            if jt in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE):
-                qa = self.robot_model.jnt_qposadr[j]
-                da = self.robot_model.jnt_dofadr[j]
-                T[da, qa] = 1.0
-            elif jt == mujoco.mjtJoint.mjJNT_BALL:
-                raise NotImplementedError("BALL joint block not implemented.")
-
-        return T
+        return build_transform_qdot_to_qvel_fast(self, use_world_omega=use_world_omega)
 
     def _calc_contact_jacobian_from_point(self, body_idx: int, p_body: np.ndarray, input_world=False):
-        """
-        Translational Jacobian J(q) (3 x nq) such that
-        v_point_world = J(q) @ qdot.
-
-        Fast analytic version: J_qdot = J_v @ T(q)
-        """
-
-        p_body = np.asarray(p_body, dtype=float).reshape(3)
-
-        # 1) Make sure kinematics are current once
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        # 2) World point (3,1) for mj_jac
-        R_WB = self.robot_data.xmat[body_idx].reshape(3, 3)
-        p_WB = self.robot_data.xpos[body_idx]
-
-        if input_world:
-            p_W = p_body.astype(np.float64).reshape(3, 1)
-        else:
-            p_W = (p_WB + R_WB @ p_body).astype(np.float64).reshape(3, 1)
-
-        # 3) J_v: translational Jacobian wrt generalized velocities (3 x nv)
-        Jp = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        Jr = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        mujoco.mj_jac(self.robot_model, self.robot_data, Jp, Jr, p_W, int(body_idx))  # Jp = J_v
-
-        T = self._build_transform_qdot_to_qvel_fast()
-
-        return Jp @ T
+        return calc_contact_jacobian_from_point(self, body_idx, p_body, input_world=input_world)
 
     def _calc_manipulator_jacobians(
         self,
@@ -1055,50 +725,13 @@ class InteractionMeshRetargeter:
         point_offsets: np.ndarray | None = None,
     ):
         """Compute position-based Jacobians using MuJoCo."""
-        J_XC_dict = {}
-        p_XC_dict = {}
-
-        if obj_frame:
-            if self.has_dynamic_object:
-                obj_quat = q[-4:]
-                obj_pos = q[-7:-4]
-                obj_rot = Rotation.from_quat([obj_quat[1], obj_quat[2], obj_quat[3], obj_quat[0]]).as_matrix()
-                obj_rot_inv = obj_rot.T
-            else:
-                obj_rot = Rotation.from_quat([0, 0, 0, 1]).as_matrix()
-                obj_rot_inv = obj_rot.T
-                obj_pos = np.zeros(3)
-
-        q_mujoco = q.copy()
-        self.robot_data.qpos[:] = q_mujoco
-
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        for name, link_name in links.items():
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
-
-            if point_offsets is not None:
-                pC_B = point_offsets
-            else:
-                pC_B = np.zeros(3)
-
-            J = self._calc_contact_jacobian_from_point(body_id, pC_B)
-            pos_world = self.robot_data.xpos[body_id]
-
-            if obj_frame:
-                p_XC = obj_rot_inv @ (pos_world - obj_pos)
-                J_XC = obj_rot_inv @ J
-            else:
-                p_XC = pos_world
-                J_XC = J
-
-            # Store reduced Jacobian and position with hard copies to avoid aliasing
-            J_XC_dict[name] = np.array(J_XC[:, self.q_a_indices], dtype=float, copy=True)  # FIX (copy)
-            p_XC_dict[name] = np.array(p_XC, dtype=float, copy=True)
-
-        P_WO = {"position": obj_pos, "rotation": obj_rot} if obj_frame else None
-
-        return J_XC_dict, p_XC_dict, P_WO
+        return calc_manipulator_jacobians(
+            self,
+            q=q,
+            links=links,
+            obj_frame=obj_frame,
+            point_offsets=point_offsets,
+        )
 
     def _get_robot_link_positions(self, q, link_names):
         """Get robot link positions for given configuration using Mujoco."""

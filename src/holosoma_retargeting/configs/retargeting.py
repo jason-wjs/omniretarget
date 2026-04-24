@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
-from holosoma_retargeting.config_types.retargeter import RetargeterConfig
-from holosoma_retargeting.config_types.robot import RobotConfig
-from holosoma_retargeting.config_types.task import TaskConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
+from holosoma_retargeting.configs.retargeter import RetargeterConfig
+from holosoma_retargeting.configs.robot import RobotConfig
+from holosoma_retargeting.configs.task import TaskConfig
 
 
 @dataclass

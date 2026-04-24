@@ -1,6 +1,6 @@
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
-from holosoma_retargeting.config_types.robot import RobotConfig
-from holosoma_retargeting.config_types.task import TaskConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
+from holosoma_retargeting.configs.robot import RobotConfig
+from holosoma_retargeting.configs.task import TaskConfig
 from holosoma_retargeting.cli.robot_retarget import create_task_constants
 
 

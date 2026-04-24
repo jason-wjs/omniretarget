@@ -11,7 +11,7 @@ from holosoma_retargeting.path_utils import package_path
 class ViserConfig:
     """Configuration for viser player visualization.
 
-    This follows the pattern from holosoma's config_types.
+    This follows the package's typed config pattern.
     Uses a flat structure with default values.
     """
 

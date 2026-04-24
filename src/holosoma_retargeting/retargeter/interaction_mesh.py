@@ -1,29 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-import trimesh
 from scipy.spatial import Delaunay  # type: ignore[import-untyped]
-
-
-def transform_points_world_to_local(quat, trans, points_world):
-    """
-    Transform points from world frame to local frame.
-
-    Args:
-        quat (np.ndarray): Object quaternion [qw, qx, qy, qz] (scalar-last format).
-        trans (np.ndarray): Object translation [x, y, z] in world frame.
-        points_world (np.ndarray): Points in world frame, shape (N, 3).
-
-    Returns:
-        np.ndarray: Points in local frame, shape (N, 3).
-    """
-    transform_matrix = trimesh.transformations.quaternion_matrix(quat)
-    transform_matrix[:3, 3] = trans
-    inverse_transform_matrix = np.linalg.inv(transform_matrix)
-
-    hom_points = np.hstack([points_world, np.ones((points_world.shape[0], 1))])
-    transformed_points_hom = (inverse_transform_matrix @ hom_points.T).T
-    return transformed_points_hom[:, :3]
 
 
 def create_interaction_mesh(vertices: np.ndarray):
@@ -38,15 +16,6 @@ def create_interaction_mesh(vertices: np.ndarray):
     """
     tri = Delaunay(vertices)
     return vertices, tri.simplices
-
-
-def transform_points_local_to_world(quat, trans, points_local):
-    """Transform points from local frame to world frame."""
-    transform_matrix = trimesh.transformations.quaternion_matrix(quat)
-    transform_matrix[:3, 3] = trans
-    hom_points = np.hstack([points_local, np.ones((points_local.shape[0], 1))])
-    transformed_points_hom = (transform_matrix @ hom_points.T).T
-    return transformed_points_hom[:, :3]
 
 
 def get_adjacency_list(tetrahedra, num_vertices):

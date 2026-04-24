@@ -63,8 +63,8 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             "holosoma_retargeting.cli.robot_retarget",
             [
                 "holosoma_retargeting.cli.robot_retarget",
-                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
+                "holosoma_retargeting.retargeter",
+                "holosoma_retargeting.retargeter.retargeter",
             ],
         ),
         (
@@ -72,8 +72,8 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             [
                 "holosoma_retargeting.cli.parallel_robot_retarget",
                 "holosoma_retargeting.cli.robot_retarget",
-                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
+                "holosoma_retargeting.retargeter",
+                "holosoma_retargeting.retargeter.retargeter",
             ],
         ),
         (

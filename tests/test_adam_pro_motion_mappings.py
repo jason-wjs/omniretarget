@@ -1,4 +1,4 @@
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
 
 
 def test_adam_pro_mapping_exists_for_smplh_smplx_lafan() -> None:

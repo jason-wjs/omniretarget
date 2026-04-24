@@ -13,9 +13,9 @@ import torch
 import torch.nn.functional as F
 import tyro
 
-from holosoma_retargeting.config_types.data_conversion import DataConversionConfig  # noqa: E402
-from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
-from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.data_conversion import DataConversionConfig  # noqa: E402
+from holosoma_retargeting.configs.motion import MotionDataConfig  # noqa: E402
+from holosoma_retargeting.configs.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.configs.runtime import resolve_robot_and_motion_configs  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
 

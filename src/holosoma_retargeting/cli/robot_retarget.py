@@ -16,28 +16,32 @@ from typing import Literal
 import numpy as np
 import tyro
 
-from holosoma_retargeting.config_types.data_type import DEMO_JOINTS_REGISTRY, MotionDataConfig  # noqa: E402
-from holosoma_retargeting.config_types.retargeter import RetargeterConfig  # noqa: E402
-from holosoma_retargeting.config_types.retargeting import RetargetingConfig  # noqa: E402
-from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
-from holosoma_retargeting.config_types.task import TaskConfig  # noqa: E402
+from holosoma_retargeting.configs.motion import DEMO_JOINTS_REGISTRY, MotionDataConfig  # noqa: E402
+from holosoma_retargeting.configs.retargeter import RetargeterConfig  # noqa: E402
+from holosoma_retargeting.configs.retargeting import RetargetingConfig  # noqa: E402
+from holosoma_retargeting.configs.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.task import TaskConfig  # noqa: E402
 from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
-from holosoma_retargeting.retargeter.interaction_mesh_retargeter import (  # noqa: E402
+from holosoma_retargeting.retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
-from holosoma_retargeting.src.utils import (  # noqa: E402
+from holosoma_retargeting.utils.motion import (  # noqa: E402
     augment_object_poses,
     calculate_scale_factor,
-    create_new_scene_xml_file,
-    create_scaled_multi_boxes_urdf,
-    create_scaled_multi_boxes_xml,
-    estimate_human_orientation,
     extract_foot_sticking_sequence_velocity,
     extract_object_first_moving_frame,
     load_intermimic_data,
-    load_object_data,
     preprocess_motion_data,
+)
+from holosoma_retargeting.utils.object_geometry import (  # noqa: E402
+    create_new_scene_xml_file,
+    create_scaled_multi_boxes_urdf,
+    create_scaled_multi_boxes_xml,
+    load_object_data,
+)
+from holosoma_retargeting.utils.transform import (  # noqa: E402
+    estimate_human_orientation,
     transform_from_human_to_world,
     transform_y_up_to_z_up,
 )
@@ -70,7 +74,7 @@ _AUGMENTATION_TRANSLATION = np.array([0.2, 0.0, 0.0])
 
 # Type aliases
 TaskType = Literal["robot_only", "object_interaction", "climbing"]
-# DataFormat is imported from config_types.data_type
+# DataFormat is imported from configs.motion
 
 # Adam Pro robot-only hip constraint profile (moderate, asymmetry-preserving).
 # Indices are qpos indices in the retargeting optimization state when q_a_init_idx == -7.

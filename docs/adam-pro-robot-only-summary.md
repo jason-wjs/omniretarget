@@ -22,7 +22,7 @@ This note summarizes the current `robot_only` support added for Adam Pro in `hol
   - Hip roll/yaw anti-twist bounds.
 
 Main files:
-- `src/holosoma_retargeting/config_types/robot.py`
+- `src/holosoma_retargeting/configs/robot.py`
 - `src/holosoma_retargeting/cli/robot_retarget.py`
 
 ### 2) Adam Pro model refinements for retargeting XML/URDF flow

@@ -18,9 +18,9 @@ from pathlib import Path
 import numpy as np
 import tyro
 
-from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
-from holosoma_retargeting.config_types.retargeting import ParallelRetargetingConfig  # noqa: E402
-from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.motion import MotionDataConfig  # noqa: E402
+from holosoma_retargeting.configs.retargeting import ParallelRetargetingConfig  # noqa: E402
+from holosoma_retargeting.configs.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 
 # Import reusable functions from robot_retarget.py
@@ -34,10 +34,10 @@ from holosoma_retargeting.cli.robot_retarget import (  # noqa: E402
 )
 
 # Import after path modification
-from holosoma_retargeting.retargeter.interaction_mesh_retargeter import (  # noqa: E402
+from holosoma_retargeting.retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
-from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
+from holosoma_retargeting.utils.motion import (  # noqa: E402
     extract_foot_sticking_sequence_velocity,
     preprocess_motion_data,
 )

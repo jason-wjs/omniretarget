@@ -30,6 +30,7 @@ omniretarget/
       profiles/
       retargeter/
       utils/
+      __init__.py
       path_utils.py
   tests/
   README.md
@@ -113,16 +114,16 @@ These modules may contain command-specific orchestration. Reusable file loading,
 
 Typed configuration schema, validation, and runtime resolution.
 
-This module should keep the conservative `dataclass` + Tyro configuration model. It should not introduce Hydra YAML configuration as part of the target architecture.
+This module keeps the conservative `dataclass` + Tyro configuration model. It should not introduce Hydra YAML configuration as part of the target architecture.
 
-The long-term goal is to replace the current split between `config_types/` and `config_values/` with a clearer configuration layer:
+`configs/` owns user-facing configuration schema and runtime reconciliation:
 
 - typed run configs for retargeting, batch retargeting, evaluation, conversion, replay, and preprocessing;
 - validation rules for user-provided options;
 - runtime config resolution that reconciles top-level selections such as `robot`, `data_format`, and `task_type` with nested config objects;
 - compatibility helpers that provide legacy uppercase constants only where still needed during migration.
 
-`config_values/` should not survive as a separate long-term layer unless it gains a real responsibility beyond thin factories and Tyro wrappers.
+It should not contain built-in robot or motion registries, retargeting algorithms, mesh processing, MuJoCo helpers, Viser playback, or command orchestration.
 
 ### `profiles/`
 
@@ -164,17 +165,32 @@ At the overview stage, this remains a small path utility module rather than a br
 
 Core retargeting algorithm layer.
 
-This module owns interaction-mesh retargeting, retargeting constraints, solver construction, per-frame optimization, and behavior currently centered around `interaction_mesh_retargeter.py`.
+This module owns the interaction-mesh retargeting algorithm.
 
-Initial refactor work should preserve the existing retargeter interface. Internal decomposition can happen later after command, configuration, and utility boundaries are stable.
+The target split is intentionally small:
+
+- `retargeter.py`: canonical home of `InteractionMeshRetargeter`; owns retargeter state, MuJoCo model/data lifecycle, frame loop orchestration, iterative solve loop, result writing, and state-dependent debug drawing.
+- `solver.py`: builds and solves the single-step SQP/CVXPY problem from prepared matrices and constraint data.
+- `constraint.py`: extracts solver-ready constraint data from current retargeter/MuJoCo state, including qdot-to-qvel transforms, Jacobians, link positions, foot-sticking terms, and non-penetration contact terms.
+- `interaction_mesh.py`: owns interaction-mesh and Laplacian helpers such as Delaunay mesh creation, adjacency construction, Laplacian coordinates, and Laplacian matrices.
+
+Avoid extra retargeter submodules such as `kinematics.py`, `collision.py`, `visualization.py`, or `transform.py` unless later code-size pressure justifies them.
 
 ### `utils/`
 
 Cohesive reusable support modules.
 
-This module should hold reusable support logic used by CLI commands, runtime config resolution, evaluation, conversion, visualization, preprocessing, and the retargeter.
+This module holds reusable support logic that remains meaningful without knowing about the retargeter solver, task constants, or per-frame optimization state.
 
-It does not have a fixed file list at the overview stage. During refactor, new utility modules may be introduced when they have a clear responsibility and improve readability or remove meaningful duplication. Good utility module names should describe responsibility, such as motion IO, pose transforms, MuJoCo model helpers, mesh sampling, object asset helpers, retarget output helpers, visualization helpers, or preprocessing helpers.
+The current utility split is:
+
+- `transform.py`: generic coordinate and pose transforms, including local/world point transforms, y-up to z-up conversion, human orientation estimation, and human/object frame transforms when they do not depend on retargeter state.
+- `motion.py`: motion IO, motion preprocessing, height normalization, scale handling, object pose preprocessing, first-moving-frame detection, and foot contact/sticking extraction from human motion.
+- `object_geometry.py`: object mesh loading, surface sampling, weighted sampling, object-axis scaling, and generation of scaled object mesh/URDF/XML assets.
+- `mujoco_mesh.py`: runtime MuJoCo geom-to-mesh extraction from `model`/`data` and current geom poses.
+- `viser_playback.py`: generic Viser playback controls such as motion sliders and play/pause interpolation.
+
+Additional utility modules may be introduced only when they have a clear responsibility and improve readability or remove meaningful duplication.
 
 The goal is not to create a generic dumping ground. Avoid broad files such as `misc.py`, `common.py`, or catch-all modules. If logic is only used by one CLI command and is part of that command's workflow, keep it local until reuse or readability pressure justifies extraction.
 
@@ -210,13 +226,11 @@ Path resolution should start in `path_utils.py`. A broader resolver can be intro
 
 This section maps the current `holosoma_retargeting/` package layout to the target architecture at a module level. It is intentionally high level; each migration stage should still get its own implementation plan.
 
-### `config_types/` and `config_values/`
+### Legacy config packages
 
-These modules should eventually be replaced by `configs/` and `profiles/`.
+The previous `config_types/` and `config_values/` packages are not part of the final architecture.
 
-`configs/` should hold typed dataclass schemas, validation, runtime resolution, and legacy compatibility helpers. `profiles/` should hold robot defaults, motion format metadata, and joint mapping registries.
-
-Early refactor stages may keep `config_types/` import paths as compatibility shims. `config_values/` should be removed or collapsed once its thin factory functions no longer provide value.
+Typed dataclass schemas, validation, and runtime resolution belong in `configs/`. Built-in robot defaults, motion format metadata, and joint mapping registries belong in `profiles/`.
 
 ### `examples/`
 
@@ -246,16 +260,16 @@ This directory is a post-retargeting evaluation workflow.
 
 The executable evaluation command should move into `cli/`. Reusable geometry or MuJoCo helpers can move into `utils/`, but evaluation-specific workflow code can remain in the CLI command until real reuse pressure appears.
 
-### Current package `src/`
+### Previous package `src/`
 
-The current package-internal `src/` directory should disappear as a semantic module name.
+The previous package-internal `src/` directory is not part of the final architecture.
 
 Its contents should be redistributed by responsibility:
 
-- `interaction_mesh_retargeter.py` moves into `retargeter/`.
-- Runtime support utilities move into cohesive modules under `utils/`.
-- MuJoCo-specific helpers move into `utils/` unless they are tightly coupled to the retargeter solver.
-- Viser-specific helpers move into `utils/` or command-specific visualization support under `cli/`.
+- interaction-mesh retargeting logic belongs in `retargeter/`.
+- Runtime support utilities belong in cohesive modules under `utils/`.
+- MuJoCo mesh extraction helpers belong in `utils/mujoco_mesh.py` unless they are tightly coupled to the retargeter solver.
+- Generic Viser playback helpers belong in `utils/viser_playback.py`; command-specific visualization workflow belongs under `cli/`.
 
 ### `models/`
 
@@ -308,7 +322,7 @@ The refactor should proceed from the outside inward:
 6. Move robot defaults, motion format defaults, and joint mappings under `profiles/`.
 7. Move retargeting algorithm code into `retargeter/`.
 8. Split broad utility code into cohesive modules under `utils/` as readability and reuse justify it.
-9. Remove or convert legacy compatibility shims after command and import users have migrated.
+9. Remove legacy compatibility shims after command and import users have migrated.
 
 Each stage should define its own implementation plan before code changes begin.
 

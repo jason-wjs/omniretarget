@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
-from holosoma_retargeting.config_types.robot import RobotConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
+from holosoma_retargeting.configs.robot import RobotConfig
 
 _ROBOT_JOINT_NAMES_DEFAULT = {
     "g1": [
@@ -77,7 +77,7 @@ _ROBOT_JOINT_NAMES_DEFAULT = {
 class DataConversionConfig:
     """Configuration for data conversion.
 
-    This follows the pattern from holosoma's config_types.
+    This follows the package's typed config pattern.
     Uses a flat structure with all conversion parameters.
     """
 

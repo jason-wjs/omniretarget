@@ -1,6 +1,6 @@
 import numpy as np
 
-from holosoma_retargeting.src.utils import preprocess_motion_data
+from holosoma_retargeting.utils.motion import preprocess_motion_data
 
 
 class _DummyRetargeter:

@@ -1,7 +1,7 @@
 import numpy as np
 
 from holosoma_retargeting.cli.eval_retargeting import RetargetingEvaluator
-from holosoma_retargeting.src.utils import extract_foot_sticking_sequence_velocity
+from holosoma_retargeting.utils.motion import extract_foot_sticking_sequence_velocity
 
 
 def test_extract_foot_sticking_sequence_velocity_uses_requested_toe_names() -> None:

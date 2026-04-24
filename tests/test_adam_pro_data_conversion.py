@@ -1,4 +1,4 @@
-from holosoma_retargeting.config_types.data_conversion import DataConversionConfig
+from holosoma_retargeting.configs.data_conversion import DataConversionConfig
 
 
 def test_adam_pro_joint_order_available_and_29dof() -> None:

@@ -44,7 +44,7 @@ class MotionDataConfig:
     def __post_init__(self) -> None:
         """Validate data_format and robot_type."""
         _validate_data_format(self.data_format)
-        from holosoma_retargeting.config_types.robot import _validate_robot_type
+        from holosoma_retargeting.configs.robot import _validate_robot_type
 
         _validate_robot_type(self.robot_type)
 

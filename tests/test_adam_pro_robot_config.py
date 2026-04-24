@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import numpy as np
-from holosoma_retargeting.config_types.robot import RobotConfig
+from holosoma_retargeting.configs.robot import RobotConfig
 
 
 def test_adam_pro_defaults_registered() -> None:

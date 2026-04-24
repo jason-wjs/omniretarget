@@ -1,7 +1,7 @@
-from holosoma_retargeting.config_types.data_conversion import DataConversionConfig
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
-from holosoma_retargeting.config_types.retargeting import RetargetingConfig
-from holosoma_retargeting.config_types.robot import RobotConfig
+from holosoma_retargeting.configs.data_conversion import DataConversionConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
+from holosoma_retargeting.configs.retargeting import RetargetingConfig
+from holosoma_retargeting.configs.robot import RobotConfig
 from holosoma_retargeting.configs.runtime import (
     resolve_retargeting_config,
     resolve_robot_and_motion_configs,

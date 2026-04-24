@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import tyro
 
-from holosoma_retargeting.config_types.data_type import OPTITRACK_DEMO_JOINTS
+from holosoma_retargeting.configs.motion import OPTITRACK_DEMO_JOINTS
 
 
 def _extract_joint_position(joint_entry: object, joint_name: str) -> np.ndarray:

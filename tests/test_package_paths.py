@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from holosoma_retargeting.config_types.robot import RobotConfig
-from holosoma_retargeting.config_types.viser import ViserConfig
-from holosoma_retargeting.src.utils import calculate_scale_factor
+from holosoma_retargeting.configs.robot import RobotConfig
+from holosoma_retargeting.configs.viser import ViserConfig
+from holosoma_retargeting.utils.motion import calculate_scale_factor
 
 
 def test_package_path_resolves_height_dict() -> None:

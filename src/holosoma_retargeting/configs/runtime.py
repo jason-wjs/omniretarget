@@ -10,9 +10,9 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import TypeVar
 
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
-from holosoma_retargeting.config_types.retargeting import RetargetingConfig
-from holosoma_retargeting.config_types.robot import RobotConfig
+from holosoma_retargeting.configs.motion import MotionDataConfig
+from holosoma_retargeting.configs.retargeting import RetargetingConfig
+from holosoma_retargeting.configs.robot import RobotConfig
 
 _RetargetingConfigT = TypeVar("_RetargetingConfigT", bound=RetargetingConfig)
 

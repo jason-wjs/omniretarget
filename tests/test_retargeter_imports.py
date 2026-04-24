@@ -1,6 +1,6 @@
-from holosoma_retargeting.retargeter.interaction_mesh_retargeter import InteractionMeshRetargeter
-from holosoma_retargeting.src.interaction_mesh_retargeter import InteractionMeshRetargeter as LegacyRetargeter
+from holosoma_retargeting.retargeter import InteractionMeshRetargeter
+from holosoma_retargeting.retargeter.retargeter import InteractionMeshRetargeter as CanonicalRetargeter
 
 
-def test_retargeter_new_and_legacy_imports_resolve_same_class() -> None:
-    assert InteractionMeshRetargeter is LegacyRetargeter
+def test_retargeter_imports_from_canonical_package() -> None:
+    assert InteractionMeshRetargeter is CanonicalRetargeter
