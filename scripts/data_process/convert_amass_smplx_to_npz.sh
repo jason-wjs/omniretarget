@@ -6,8 +6,10 @@ REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
 cd "${REPO_ROOT}/src/holosoma_retargeting"
 
-# Use vendored human_body_prior package for SMPL-X body model loading.
-export PYTHONPATH="${PWD}/data_utils/human_body_prior:${PYTHONPATH:-}"
+# Set HUMAN_BODY_PRIOR_ROOT if human_body_prior is not installed in the active environment.
+if [[ -n "${HUMAN_BODY_PRIOR_ROOT:-}" ]]; then
+  export PYTHONPATH="${HUMAN_BODY_PRIOR_ROOT}:${PYTHONPATH:-}"
+fi
 
 AMASS_ROOT="${AMASS_ROOT:-demo_data/AMASS}"
 OUTPUT_DIR="${OUTPUT_DIR:-demo_data/amass_npz}"

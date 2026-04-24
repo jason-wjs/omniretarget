@@ -152,7 +152,7 @@ JOINTS_MAPPINGS = {
 Once configured, you can use your custom robot:
 
 ```bash
-python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --data_path /path/to/data \
   --task-type robot_only \
   --task-name your_sequence \

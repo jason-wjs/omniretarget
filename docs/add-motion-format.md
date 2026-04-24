@@ -14,7 +14,7 @@ This guide shows you how to add a new data format (e.g., "myformat") to the reta
 Prepare `.npz` files for each motion sequence:
 - **`.npz` format**: Should contain `global_joint_positions` array (T X J X 3) and `height` scalar
 
-**Example**: We provide `data_utils/prep_amass_smplx_for_rt.py` for converting AMASS SMPLX data:
+**Example**: We provide `cli/data_process/prep_amass_smplx_for_rt.py` for converting AMASS SMPLX data:
 ```bash
 # Install dependencies
 git clone https://github.com/nghorbani/human_body_prior.git
@@ -23,7 +23,7 @@ cd human_body_prior/
 python setup.py develop
 
 # Run data processing
-python prep_amass_smplx_for_rt.py \
+uv run omniretarget-prep-amass \
   --amass-root-folder /path/to/amass \
   --output-folder /path/to/output \
   --model-root-folder /path/to/models
@@ -102,7 +102,7 @@ JOINTS_MAPPINGS = {
 
 **Important**: If you processed your data to the `.npz` format in Step 1 (with `global_joint_positions` and `height` keys), you can **skip this step entirely**. The code automatically handles `.npz` files with this structure via a fallback mechanism.
 
-If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `examples/robot_retarget.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
+If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `cli/robot_retarget.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
 
 ```python
 def load_motion_data(...):
@@ -135,7 +135,7 @@ def load_motion_data(...):
 **In `profiles/mappings.py`:**
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
-**In `examples/robot_retarget.py`** (only if needed):
+**In `cli/robot_retarget.py`** (only if needed):
 5. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
 
 
@@ -144,7 +144,7 @@ def load_motion_data(...):
 Once configured, you can use your custom format:
 
 ```bash
-python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --data_path /path/to/your/data \
   --task-type robot_only \
   --task-name your_sequence_name \

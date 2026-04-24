@@ -1,6 +1,6 @@
 import numpy as np
 
-from holosoma_retargeting.evaluation.eval_retargeting import RetargetingEvaluator
+from holosoma_retargeting.cli.eval_retargeting import RetargetingEvaluator
 from holosoma_retargeting.src.utils import extract_foot_sticking_sequence_velocity
 
 

@@ -9,14 +9,10 @@ import numpy as np
 import torch
 import tyro
 
-# Support both module execution (`python -m ...`) and direct script execution.
-# The vendored layout is: data_utils/human_body_prior/human_body_prior/...
-_VENDORED_HBP_ROOT = Path(__file__).resolve().parents[2] / "data_utils" / "human_body_prior"
-
-
 def _load_body_model_cls():
-    if _VENDORED_HBP_ROOT.is_dir() and str(_VENDORED_HBP_ROOT) not in sys.path:
-        sys.path.insert(0, str(_VENDORED_HBP_ROOT))
+    human_body_prior_root = os.environ.get("HUMAN_BODY_PRIOR_ROOT")
+    if human_body_prior_root and human_body_prior_root not in sys.path:
+        sys.path.insert(0, human_body_prior_root)
 
     from human_body_prior.body_model.body_model import BodyModel  # type: ignore[import-not-found]
 

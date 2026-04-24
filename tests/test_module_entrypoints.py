@@ -60,28 +60,8 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
     ("module_name", "reset_modules"),
     [
         (
-            "holosoma_retargeting.examples.robot_retarget",
-            [
-                "holosoma_retargeting.examples.robot_retarget",
-                "holosoma_retargeting.cli.robot_retarget",
-                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
-            ],
-        ),
-        (
             "holosoma_retargeting.cli.robot_retarget",
             [
-                "holosoma_retargeting.cli.robot_retarget",
-                "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
-            ],
-        ),
-        (
-            "holosoma_retargeting.examples.parallel_robot_retarget",
-            [
-                "holosoma_retargeting.examples.parallel_robot_retarget",
-                "holosoma_retargeting.examples.robot_retarget",
-                "holosoma_retargeting.cli.parallel_robot_retarget",
                 "holosoma_retargeting.cli.robot_retarget",
                 "holosoma_retargeting.retargeter.interaction_mesh_retargeter",
                 "holosoma_retargeting.src.interaction_mesh_retargeter",
@@ -97,89 +77,28 @@ def _stub_optional_entrypoint_dependencies(monkeypatch: pytest.MonkeyPatch) -> N
             ],
         ),
         (
-            "holosoma_retargeting.data_conversion.convert_data_format_mj",
-            [
-                "holosoma_retargeting.data_conversion.convert_data_format_mj",
-                "holosoma_retargeting.cli.data_process.convert_data_format_mj",
-            ],
-        ),
-        (
             "holosoma_retargeting.cli.data_process.convert_data_format_mj",
-            [
-                "holosoma_retargeting.cli.data_process.convert_data_format_mj",
-                "holosoma_retargeting.data_conversion.convert_data_format_mj",
-            ],
-        ),
-        (
-            "holosoma_retargeting.data_utils.prep_amass_smplx_for_rt",
-            [
-                "holosoma_retargeting.data_utils.prep_amass_smplx_for_rt",
-                "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt",
-            ],
+            ["holosoma_retargeting.cli.data_process.convert_data_format_mj"],
         ),
         (
             "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt",
-            [
-                "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt",
-                "holosoma_retargeting.data_utils.prep_amass_smplx_for_rt",
-            ],
-        ),
-        (
-            "holosoma_retargeting.data_utils.prep_optitrack_for_rt",
-            [
-                "holosoma_retargeting.data_utils.prep_optitrack_for_rt",
-                "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt",
-            ],
+            ["holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt"],
         ),
         (
             "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt",
-            [
-                "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt",
-                "holosoma_retargeting.data_utils.prep_optitrack_for_rt",
-            ],
-        ),
-        (
-            "holosoma_retargeting.data_utils.extract_global_positions",
-            [
-                "holosoma_retargeting.data_utils.extract_global_positions",
-                "holosoma_retargeting.cli.data_process.extract_global_positions",
-            ],
+            ["holosoma_retargeting.cli.data_process.prep_optitrack_for_rt"],
         ),
         (
             "holosoma_retargeting.cli.data_process.extract_global_positions",
-            [
-                "holosoma_retargeting.cli.data_process.extract_global_positions",
-                "holosoma_retargeting.data_utils.extract_global_positions",
-            ],
-        ),
-        (
-            "holosoma_retargeting.evaluation.eval_retargeting",
-            [
-                "holosoma_retargeting.evaluation.eval_retargeting",
-                "holosoma_retargeting.cli.eval_retargeting",
-            ],
+            ["holosoma_retargeting.cli.data_process.extract_global_positions"],
         ),
         (
             "holosoma_retargeting.cli.eval_retargeting",
             ["holosoma_retargeting.cli.eval_retargeting"],
         ),
         (
-            "holosoma_retargeting.viser_player",
-            [
-                "holosoma_retargeting.viser_player",
-                "holosoma_retargeting.cli.viser_player",
-            ],
-        ),
-        (
             "holosoma_retargeting.cli.viser_player",
             ["holosoma_retargeting.cli.viser_player"],
-        ),
-        (
-            "holosoma_retargeting.data_conversion.viser_body_vel_player",
-            [
-                "holosoma_retargeting.data_conversion.viser_body_vel_player",
-                "holosoma_retargeting.cli.viser_body_vel_player",
-            ],
         ),
         (
             "holosoma_retargeting.cli.viser_body_vel_player",
@@ -195,6 +114,31 @@ def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: st
     monkeypatch.setattr(sys, "path", NoInsertPath(sys.path))
 
     importlib.import_module(module_name)
+
+
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "holosoma_retargeting.examples",
+        "holosoma_retargeting.examples.robot_retarget",
+        "holosoma_retargeting.examples.parallel_robot_retarget",
+        "holosoma_retargeting.data_conversion",
+        "holosoma_retargeting.data_conversion.convert_data_format_mj",
+        "holosoma_retargeting.data_conversion.viser_body_vel_player",
+        "holosoma_retargeting.data_utils",
+        "holosoma_retargeting.data_utils.prep_amass_smplx_for_rt",
+        "holosoma_retargeting.data_utils.prep_optitrack_for_rt",
+        "holosoma_retargeting.data_utils.extract_global_positions",
+        "holosoma_retargeting.evaluation",
+        "holosoma_retargeting.evaluation.eval_retargeting",
+        "holosoma_retargeting.viser_player",
+    ],
+)
+def test_deprecated_entrypoint_modules_are_removed(module_name: str) -> None:
+    sys.modules.pop(module_name, None)
+
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module(module_name)
 
 
 def test_project_declares_official_console_scripts(monkeypatch) -> None:

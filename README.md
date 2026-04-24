@@ -34,26 +34,26 @@ UV_CACHE_DIR=/tmp/uv-cache uv sync
 
 ## Recommended Entry Points
 
-The shell wrappers under `scripts/retargeting/` are the supported entry points from the repository root. They handle the current package-relative working directory assumptions for demo assets and examples.
+The shell wrappers under `scripts/` are the supported entry points from the repository root. Data-processing wrappers live under `scripts/data_process/`.
 
 ### Single Clip Retargeting
 
 ```bash
-bash scripts/retargeting/retarget_single_clip.sh
+bash scripts/retarget_single_clip.sh
 ```
 
 ### Batch Retargeting
 
 ```bash
-bash scripts/retargeting/retarget_batch_clips.sh
+bash scripts/retarget_batch_clips.sh
 ```
 
 ### Data Conversion
 
 ```bash
-bash scripts/retargeting/convert_lafan_bvh_to_npy.sh
-bash scripts/retargeting/convert_optitrack_pkl_to_npz.sh
-bash scripts/retargeting/convert_amass_smplx_to_npz.sh
+bash scripts/data_process/convert_lafan_bvh_to_npy.sh
+bash scripts/data_process/convert_optitrack_pkl_to_npz.sh
+bash scripts/data_process/convert_amass_smplx_to_npz.sh
 ```
 
 For direct MuJoCo export of retargeted trajectories, see `docs/usage.md`.
@@ -61,13 +61,13 @@ For direct MuJoCo export of retargeted trajectories, see `docs/usage.md`.
 ### Evaluation
 
 ```bash
-bash scripts/retargeting/eval.sh
+bash scripts/eval.sh
 ```
 
 ### Replay
 
 ```bash
-bash scripts/retargeting/replay_viser.sh
+bash scripts/replay_viser.sh
 ```
 
 ## Verification

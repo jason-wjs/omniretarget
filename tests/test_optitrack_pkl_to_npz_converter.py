@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from holosoma_retargeting.data_utils.prep_optitrack_for_rt import (
+from holosoma_retargeting.cli.data_process.prep_optitrack_for_rt import (
     OPTITRACK_DEMO_JOINTS,
     convert_optitrack_pkl_to_npz,
 )

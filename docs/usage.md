@@ -2,7 +2,7 @@
 
 This guide collects direct Python entry points and example command lines for OmniRetarget.
 
-For routine use from the repository root, prefer the shell wrappers under `scripts/retargeting/`. The direct commands below currently assume package-relative demo data, models, and output paths. Run them from the retargeting package directory:
+For routine use from the repository root, prefer the shell wrappers under `scripts/` and `scripts/data_process/`. The direct console commands below currently assume package-relative demo data, models, and output paths. Run them from the retargeting package directory:
 
 ```bash
 cd src/holosoma_retargeting
@@ -21,7 +21,7 @@ The retargeting pipeline expects world joint positions with shape `(T, J, 3)`. F
 ## Single Sequence Retargeting
 
 ```bash
-uv run python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --robot adam_pro \
   --task-type robot_only \
   --task-name dance1_subject1 \
@@ -34,7 +34,7 @@ uv run python examples/robot_retarget.py \
 ```
 
 ```bash
-uv run python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --robot adam_pro \
   --task-type object_interaction \
   --task-name sub3_largebox_003 \
@@ -45,7 +45,7 @@ uv run python examples/robot_retarget.py \
 ```
 
 ```bash
-uv run python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --robot g1 \
   --task-type climbing \
   --task-name mocap_climb_seq_0 \
@@ -60,7 +60,7 @@ uv run python examples/robot_retarget.py \
 ## Batch Retargeting
 
 ```bash
-uv run python examples/parallel_robot_retarget.py \
+uv run omniretarget-batch \
   --robot adam_pro \
   --task-type robot_only \
   --task-config.object-name ground \
@@ -70,7 +70,7 @@ uv run python examples/parallel_robot_retarget.py \
 ```
 
 ```bash
-uv run python examples/parallel_robot_retarget.py \
+uv run omniretarget-batch \
   --robot adam_pro \
   --task-type object_interaction \
   --task-config.object-name largebox \
@@ -84,7 +84,7 @@ uv run python examples/parallel_robot_retarget.py \
 ### LAFAN BVH to NPY
 
 ```bash
-uv run python data_utils/extract_global_positions.py \
+uv run omniretarget-extract-global-positions \
   --input-dir demo_data/lafan1_raw_bvh \
   --output-dir demo_data/lafan1
 ```
@@ -92,7 +92,7 @@ uv run python data_utils/extract_global_positions.py \
 ### OptiTrack PKL to NPZ
 
 ```bash
-uv run python data_utils/prep_optitrack_for_rt.py \
+uv run omniretarget-prep-optitrack \
   --input-dir demo_data/mocap_optitrack \
   --output-dir demo_data/optitrack_npz \
   --height 1.7
@@ -101,8 +101,8 @@ uv run python data_utils/prep_optitrack_for_rt.py \
 ### AMASS SMPL-X to NPZ
 
 ```bash
-PYTHONPATH="${PWD}/data_utils/human_body_prior:${PYTHONPATH:-}" \
-uv run python -m data_utils.prep_amass_smplx_for_rt \
+HUMAN_BODY_PRIOR_ROOT=/path/to/human_body_prior \
+uv run omniretarget-prep-amass \
   --amass-root-folder /path/to/amass \
   --output-folder demo_data/amass_npz \
   --model-root-folder /path/to/models
@@ -111,7 +111,7 @@ uv run python -m data_utils.prep_amass_smplx_for_rt \
 ## MuJoCo Export
 
 ```bash
-uv run python data_conversion/convert_data_format_mj.py \
+uv run omniretarget-convert \
   --input_file demo_results/adam_pro/robot_only/lafan1/dance1_subject1.npz \
   --output_fps 50 \
   --output_name converted_res/robot_only/dance1_subject1_mj_fps50.npz \
@@ -121,7 +121,7 @@ uv run python data_conversion/convert_data_format_mj.py \
 ```
 
 ```bash
-uv run python data_conversion/convert_data_format_mj.py \
+uv run omniretarget-convert \
   --input_file demo_results_parallel/adam_pro/object_interaction/omomo/sub3_largebox_003_original.npz \
   --output_fps 50 \
   --output_name converted_res/object_interaction/sub3_largebox_003_mj_w_obj.npz \
@@ -136,7 +136,7 @@ If your input clip already follows the OmniRetarget layout, add `--use_omniretar
 ## Replay
 
 ```bash
-uv run python viser_player.py \
+uv run omniretarget-replay \
   --qpos-npz demo_results_parallel/adam_pro/object_interaction/omomo/sub3_largebox_003_original.npz \
   --robot-urdf models/adam_pro/adam_pro_29dof.urdf \
   --object-urdf models/largebox/largebox.urdf
@@ -145,7 +145,7 @@ uv run python viser_player.py \
 ## Quantitative Evaluation
 
 ```bash
-uv run python evaluation/eval_retargeting.py \
+uv run omniretarget-eval \
   --res-dir demo_results_parallel/adam_pro/robot_only/omomo \
   --data-dir demo_data/OMOMO_new \
   --data-type robot_only \

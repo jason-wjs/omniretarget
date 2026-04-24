@@ -1,7 +1,7 @@
 from holosoma_retargeting.config_types.data_type import MotionDataConfig
 from holosoma_retargeting.config_types.robot import RobotConfig
 from holosoma_retargeting.config_types.task import TaskConfig
-from holosoma_retargeting.examples.robot_retarget import create_task_constants
+from holosoma_retargeting.cli.robot_retarget import create_task_constants
 
 
 def test_adam_pro_object_interaction_uses_hand_ee_links() -> None:

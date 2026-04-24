@@ -1,6 +1,6 @@
 # Adam Pro Robot-Only Retargeting Summary
 
-This note summarizes the current `robot_only` support added for Adam Pro in `holosoma_retargeting`, plus the bash entrypoints under `scripts/retargeting`.
+This note summarizes the current `robot_only` support added for Adam Pro in `holosoma_retargeting`, plus the bash entrypoints under `scripts/` and `scripts/data_process/`.
 
 ## Scope (Current)
 
@@ -22,13 +22,13 @@ This note summarizes the current `robot_only` support added for Adam Pro in `hol
   - Hip roll/yaw anti-twist bounds.
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/robot.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
+- `src/holosoma_retargeting/config_types/robot.py`
+- `src/holosoma_retargeting/cli/robot_retarget.py`
 
 ### 2) Adam Pro model refinements for retargeting XML/URDF flow
 
 Model file:
-- `src/holosoma_retargeting/holosoma_retargeting/models/adam_pro/adam_pro_29dof.xml`
+- `src/holosoma_retargeting/models/adam_pro/adam_pro_29dof.xml`
 
 Current retargeting-relevant details include:
 - Retargeting-only `ground` plane in XML.
@@ -69,7 +69,7 @@ Adam Pro joint/link mapping added for:
 Also added OptiTrack mapping for `g1`.
 
 Main file:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/data_type.py`
+- `src/holosoma_retargeting/profiles/mappings.py`
 
 ### 4) OptiTrack support (custom format path)
 
@@ -79,8 +79,8 @@ Main file:
   - default height used: `1.7`
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/data_type.py`
-- `src/holosoma_retargeting/holosoma_retargeting/data_utils/prep_optitrack_for_rt.py`
+- `src/holosoma_retargeting/profiles/motions.py`
+- `src/holosoma_retargeting/cli/data_process/prep_optitrack_for_rt.py`
 
 ### 5) Grounding behavior for OptiTrack robot-only
 
@@ -90,25 +90,24 @@ Main files:
 - This differs from non-OptiTrack defaults and improves floor grounding stability for OptiTrack data.
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/parallel_robot_retarget.py`
+- `src/holosoma_retargeting/cli/robot_retarget.py`
+- `src/holosoma_retargeting/cli/parallel_robot_retarget.py`
 
-## Bash Usage (`scripts/retargeting`)
+## Bash Usage (`scripts/`)
 
 All scripts assume you run from repo root:
-- `/home/humanoid/Projects/Junsong_WU/adam_reference/holosoma`
+- `/home/humanoid/Projects/Junsong_WU/ADAM/omni/omniretarget-refactor-next`
 
-They already source:
-- `scripts/source_retargeting_setup.sh`
+Retargeting/evaluation/replay wrappers live directly under `scripts/`; data conversion wrappers live under `scripts/data_process/`.
 
 ### 1) Single clip retargeting
 
 Script:
-- `scripts/retargeting/retarget_single_clip.sh`
+- `scripts/retarget_single_clip.sh`
 
 Default in script currently runs OptiTrack + Adam Pro:
 ```bash
-bash scripts/retargeting/retarget_single_clip.sh
+bash scripts/retarget_single_clip.sh
 ```
 
 The script contains commented templates for:
@@ -120,7 +119,7 @@ The script contains commented templates for:
 ### 2) Batch retargeting
 
 Script:
-- `scripts/retargeting/retarget_batch_clips.sh`
+- `scripts/retarget_batch_clips.sh`
 
 Default:
 - `ROBOT=adam_pro`
@@ -130,32 +129,32 @@ Default:
 
 Run:
 ```bash
-bash scripts/retargeting/retarget_batch_clips.sh
+bash scripts/retarget_batch_clips.sh
 ```
 
 Override with env vars:
 ```bash
 ROBOT=g1 DATA_FORMAT=optitrack DATA_DIR=demo_data/optitrack_npz \
 SAVE_DIR=demo_results_parallel/g1/robot_only/optitrack \
-bash scripts/retargeting/retarget_batch_clips.sh
+bash scripts/retarget_batch_clips.sh
 ```
 
 ### 3) Replay retargeted result in Viser
 
 Script:
-- `scripts/retargeting/replay_viser.sh`
+- `scripts/replay_viser.sh`
 
 Run:
 ```bash
-bash scripts/retargeting/replay_viser.sh
+bash scripts/replay_viser.sh
 ```
 
-You can override any `viser_player.py` arg by appending CLI flags.
+You can override any replay CLI arg by appending flags.
 
 ### 4) Quantitative evaluation
 
 Script:
-- `scripts/retargeting/eval.sh`
+- `scripts/eval.sh`
 
 Default target:
 - Adam Pro
@@ -164,35 +163,35 @@ Default target:
 
 Run:
 ```bash
-bash scripts/retargeting/eval.sh
+bash scripts/eval.sh
 ```
 
 ### 5) LAFAN conversion (`.bvh` -> `.npy`)
 
 Script:
-- `scripts/retargeting/convert_lafan_bvh_to_npy.sh`
+- `scripts/data_process/convert_lafan_bvh_to_npy.sh`
 
 Run:
 ```bash
-bash scripts/retargeting/convert_lafan_bvh_to_npy.sh
+bash scripts/data_process/convert_lafan_bvh_to_npy.sh
 ```
 
 ### 6) AMASS conversion (SMPL-X -> retargeting NPZ)
 
 Script:
-- `scripts/retargeting/convert_amass_smplx_to_npz.sh`
+- `scripts/data_process/convert_amass_smplx_to_npz.sh`
 
 Run:
 ```bash
-bash scripts/retargeting/convert_amass_smplx_to_npz.sh
+bash scripts/data_process/convert_amass_smplx_to_npz.sh
 ```
 
 ### 7) OptiTrack conversion (`.pkl` -> retargeting NPZ)
 
 Script:
-- `scripts/retargeting/convert_optitrack_pkl_to_npz.sh`
+- `scripts/data_process/convert_optitrack_pkl_to_npz.sh`
 
 Run:
 ```bash
-bash scripts/retargeting/convert_optitrack_pkl_to_npz.sh
+bash scripts/data_process/convert_optitrack_pkl_to_npz.sh
 ```
