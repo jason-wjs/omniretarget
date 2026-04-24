@@ -4,7 +4,7 @@
 
 **Goal:** Remove the remaining legacy package directories so `src/holosoma_retargeting/` matches the final overview layout exactly.
 
-**Architecture:** Move typed dataclass configuration schemas from `config_types/` into `configs/`, collapse `config_values/`, and move the remaining package-internal `src/` utilities into responsibility-based modules. Keep retargeting-specific interaction-mesh helpers under `retargeter/`, keep generic support under `utils/`, and remove legacy import paths after all first-party users migrate.
+**Architecture:** Move typed dataclass configuration schemas from `config_types/` into `configs/`, collapse `config_values/`, and move the remaining package-internal `src/` code into responsibility-based modules. Keep algorithm-specific retargeting logic under `retargeter/`, keep algorithm-independent helpers under `utils/`, and remove legacy import paths after all first-party users migrate.
 
 **Tech Stack:** Python 3.11, dataclasses, Tyro, setuptools, pytest, MuJoCo, Viser, NumPy
 
@@ -35,6 +35,84 @@ src/holosoma_retargeting/config_types/
 src/holosoma_retargeting/config_values/
 src/holosoma_retargeting/src/
 ```
+
+## Final Internal Module Responsibilities
+
+### `configs/`
+
+`configs/` owns user-configurable typed dataclass schema, validation, and runtime resolution.
+
+It should contain Tyro-facing config classes such as `RetargetingConfig`, `ParallelRetargetingConfig`, `RobotConfig`, `MotionDataConfig`, `TaskConfig`, `RetargeterConfig`, `DataConversionConfig`, and `ViserConfig`, plus runtime reconciliation helpers such as top-level `robot` / `data_format` selectors syncing into nested config objects.
+
+It should not contain built-in robot or motion registries, retargeting algorithms, mesh processing, MuJoCo helpers, Viser playback, or command orchestration.
+
+### `profiles/`
+
+`profiles/` owns project-provided domain defaults and registries.
+
+It should contain robot defaults, DOF, heights, manual limits, nominal tracking indices, foot sticking links, motion-format joint names, toe names, format metadata, and robot-motion joint mappings.
+
+It should not contain Tyro dataclass schema, runtime config merging, package path resolution, CLI workflow code, or file conversion logic.
+
+### `retargeter/`
+
+`retargeter/` owns the interaction-mesh retargeting algorithm.
+
+Its final module split should stay intentionally small:
+
+```text
+retargeter/
+  __init__.py
+  retargeter.py
+  solver.py
+  constraint.py
+  interaction_mesh.py
+```
+
+- `retargeter.py`: canonical home of `InteractionMeshRetargeter`; owns retargeter state, MuJoCo model/data lifecycle, frame loop orchestration, iterative solve loop, result writing, and debug drawing methods that directly depend on retargeter state.
+- `solver.py`: builds and solves the single-step SQP/CVXPY problem from prepared matrices and constraint data.
+- `constraint.py`: extracts solver-ready constraint data from current retargeter/MuJoCo state, including qdot-to-qvel transforms, Jacobians, link positions, foot-sticking terms, and non-penetration contact terms.
+- `interaction_mesh.py`: owns interaction-mesh and Laplacian helper functions such as Delaunay mesh creation, adjacency construction, Laplacian coordinates, and Laplacian matrices.
+
+Do not add extra `retargeter/kinematics.py`, `retargeter/collision.py`, `retargeter/visualization.py`, or `retargeter/transform.py` modules during this phase unless a later code-size problem justifies it. The immediate goal is clearer algorithm semantics without over-abstracting.
+
+### `utils/`
+
+`utils/` owns reusable helpers that remain meaningful without knowing about the retargeter solver, task constants, or per-frame optimization state.
+
+The final utility split for this cleanup should be:
+
+```text
+utils/
+  __init__.py
+  transform.py
+  motion.py
+  object_geometry.py
+  mujoco_mesh.py
+  viser_playback.py
+```
+
+- `transform.py`: generic coordinate and pose transforms, including local/world point transforms, y-up to z-up conversion, human orientation estimation, and human/object frame transforms when they do not depend on retargeter state.
+- `motion.py`: motion IO, motion preprocessing, height normalization, scale handling, object pose preprocessing, first-moving-frame detection, and foot contact/sticking extraction from human motion.
+- `object_geometry.py`: object mesh loading, surface sampling, weighted sampling, object-axis scaling, and generation of scaled object mesh/URDF/XML assets.
+- `mujoco_mesh.py`: runtime MuJoCo geom-to-mesh extraction from `model`/`data` and current geom poses.
+- `viser_playback.py`: generic Viser playback controls such as motion sliders and play/pause interpolation.
+
+`utils/` should not contain CVXPY solver construction, retargeter constraints, interaction-mesh Laplacian algorithm helpers, CLI workflows, config schema, or profile registries.
+
+### `models/` and `demo_data/`
+
+`models/` and `demo_data/` remain stable package data and are intentionally not touched by this cleanup.
+
+`models/` contains static robot/object URDF, XML, mesh, and template assets. `demo_data/` contains small packaged examples and fixtures. Large external datasets and generated experiment outputs should stay outside the package.
+
+### `path_utils.py`
+
+`path_utils.py` owns lightweight package-relative path resolution for package data. It should not become a registry, asset resolver class, dataset manager, plugin layer, or IO abstraction.
+
+### `__init__.py`
+
+The package root `__init__.py` should stay lightweight. It may expose a version or very small stable public surface, but it must not import heavy dependencies such as MuJoCo, Viser, CVXPY, or Torch as a side effect of `import holosoma_retargeting`.
 
 ## Execution Rules
 
@@ -313,8 +391,8 @@ git commit -m "refactor: remove legacy config values package"
 ### Task 4: Move Generic Utility Code out of Package-Internal `src/`
 
 **Files:**
-- Move: `src/holosoma_retargeting/src/mujoco_utils.py` -> `src/holosoma_retargeting/utils/mujoco.py`
-- Move: `src/holosoma_retargeting/src/viser_utils.py` -> `src/holosoma_retargeting/utils/visualization.py`
+- Move: `src/holosoma_retargeting/src/mujoco_utils.py` -> `src/holosoma_retargeting/utils/mujoco_mesh.py`
+- Move: `src/holosoma_retargeting/src/viser_utils.py` -> `src/holosoma_retargeting/utils/viser_playback.py`
 - Split: `src/holosoma_retargeting/src/utils.py` into focused modules under `src/holosoma_retargeting/utils/`
 - Modify: `src/holosoma_retargeting/utils/__init__.py`
 - Modify: all imports under `src/` and `tests/`
@@ -331,33 +409,31 @@ utils/motion.py
   extract_object_first_moving_frame
   extract_foot_sticking_sequence
   extract_foot_sticking_sequence_velocity
-  transform_y_up_to_z_up
-  estimate_human_orientation
 
-utils/mesh.py
+utils/object_geometry.py
   load_object_data
   weighted_surface_sampling
   weighted_surface_sampling_by_face_normal
   create_top_surface_weight_function
   scale_points_in_object_axes_frame
-
-utils/object_assets.py
   create_scaled_object_mesh_and_urdf
   create_scaled_multi_boxes_urdf
   create_scaled_multi_boxes_xml
   create_new_scene_xml_file
 
-utils/geometry.py
+utils/transform.py
   transform_from_human_to_world
   transform_points_world_to_local
   transform_points_local_to_world
+  transform_y_up_to_z_up
+  estimate_human_orientation
 
-utils/mujoco.py
+utils/mujoco_mesh.py
   _mesh_local_vf
   _to_world
   _world_mesh_from_geom
 
-utils/visualization.py
+utils/viser_playback.py
   create_motion_control_sliders
 ```
 
@@ -369,9 +445,9 @@ Create or extend tests so first-party imports use:
 from holosoma_retargeting.utils.motion import preprocess_motion_data
 from holosoma_retargeting.utils.motion import extract_foot_sticking_sequence_velocity
 from holosoma_retargeting.utils.motion import calculate_scale_factor
-from holosoma_retargeting.utils.geometry import transform_points_world_to_local
-from holosoma_retargeting.utils.mujoco import _world_mesh_from_geom
-from holosoma_retargeting.utils.visualization import create_motion_control_sliders
+from holosoma_retargeting.utils.transform import transform_points_world_to_local
+from holosoma_retargeting.utils.mujoco_mesh import _world_mesh_from_geom
+from holosoma_retargeting.utils.viser_playback import create_motion_control_sliders
 ```
 
 Run:
@@ -387,20 +463,20 @@ Expected: FAIL until modules exist.
 Run:
 
 ```bash
-git mv src/holosoma_retargeting/src/mujoco_utils.py src/holosoma_retargeting/utils/mujoco.py
-git mv src/holosoma_retargeting/src/viser_utils.py src/holosoma_retargeting/utils/visualization.py
+git mv src/holosoma_retargeting/src/mujoco_utils.py src/holosoma_retargeting/utils/mujoco_mesh.py
+git mv src/holosoma_retargeting/src/viser_utils.py src/holosoma_retargeting/utils/viser_playback.py
 ```
 
 Update imports:
 
 ```text
-holosoma_retargeting.src.mujoco_utils -> holosoma_retargeting.utils.mujoco
-holosoma_retargeting.src.viser_utils -> holosoma_retargeting.utils.visualization
+holosoma_retargeting.src.mujoco_utils -> holosoma_retargeting.utils.mujoco_mesh
+holosoma_retargeting.src.viser_utils -> holosoma_retargeting.utils.viser_playback
 ```
 
 **Step 3: Split `src/utils.py`**
 
-Create `utils/motion.py`, `utils/mesh.py`, `utils/object_assets.py`, and `utils/geometry.py`.
+Create `utils/motion.py`, `utils/object_geometry.py`, and `utils/transform.py`.
 
 Move functions by responsibility using the recommended split above. Keep function names and behavior unchanged.
 
@@ -445,27 +521,61 @@ git commit -m "refactor: move shared helpers into utils modules"
 
 ---
 
-### Task 5: Put Interaction-Mesh Algorithm Helpers under `retargeter/`
+### Task 5: Split the Interaction-Mesh Retargeter into Algorithm Modules
 
 **Files:**
-- Move or split: `src/holosoma_retargeting/utils/interaction_mesh.py`
+- Move: `src/holosoma_retargeting/retargeter/interaction_mesh_retargeter.py` -> `src/holosoma_retargeting/retargeter/retargeter.py`
+- Create: `src/holosoma_retargeting/retargeter/solver.py`
+- Create: `src/holosoma_retargeting/retargeter/constraint.py`
 - Create: `src/holosoma_retargeting/retargeter/interaction_mesh.py`
-- Modify: `src/holosoma_retargeting/retargeter/interaction_mesh_retargeter.py`
-- Modify: `src/holosoma_retargeting/utils/geometry.py`
-- Modify: `tests/test_utils_interaction_mesh.py` or replace it with retargeter-specific tests
+- Delete: `src/holosoma_retargeting/utils/interaction_mesh.py`
+- Modify: `src/holosoma_retargeting/retargeter/__init__.py`
+- Modify: `src/holosoma_retargeting/utils/transform.py`
+- Modify: `src/holosoma_retargeting/cli/robot_retarget.py`
+- Modify: `src/holosoma_retargeting/cli/parallel_robot_retarget.py`
+- Modify: `src/holosoma_retargeting/cli/eval_retargeting.py`
+- Modify: `tests/test_utils_interaction_mesh.py` or replace it with retargeter/transform ownership tests
+- Modify: `tests/test_retargeter_imports.py`
+- Modify: `tests/test_module_entrypoints.py`
 
-**Intent:** Align with the overview boundary: interaction-mesh retargeting internals belong to `retargeter/`, while generic geometry belongs in `utils/`.
+**Intent:** Align with the overview boundary: `retargeter/` owns interaction-mesh retargeting algorithms, while `utils/` owns only algorithm-independent helpers.
 
-**Step 1: Split generic transforms from algorithm helpers**
+**Step 1: Rename the canonical retargeter module**
 
-Move these functions to `utils/geometry.py`:
+Run:
+
+```bash
+git mv src/holosoma_retargeting/retargeter/interaction_mesh_retargeter.py src/holosoma_retargeting/retargeter/retargeter.py
+```
+
+Update canonical imports from:
+
+```python
+from holosoma_retargeting.retargeter.interaction_mesh_retargeter import InteractionMeshRetargeter
+```
+
+to:
+
+```python
+from holosoma_retargeting.retargeter.retargeter import InteractionMeshRetargeter
+```
+
+Also update `retargeter/__init__.py` to re-export `InteractionMeshRetargeter` from `retargeter.py`.
+
+**Step 2: Move generic transforms out of `utils/interaction_mesh.py`**
+
+Move these functions to `utils/transform.py`:
 
 ```python
 transform_points_world_to_local
 transform_points_local_to_world
 ```
 
-Move these functions to `retargeter/interaction_mesh.py`:
+Use `utils/transform.py` for generic point and pose transforms. Do not create `retargeter/transform.py` in this phase.
+
+**Step 3: Move interaction-mesh algorithms into `retargeter/interaction_mesh.py`**
+
+Move these functions from `utils/interaction_mesh.py` to `retargeter/interaction_mesh.py`:
 
 ```python
 create_interaction_mesh
@@ -474,36 +584,92 @@ calculate_laplacian_coordinates
 calculate_laplacian_matrix
 ```
 
-Delete `utils/interaction_mesh.py` unless it still has a genuine generic responsibility. Prefer deleting it to avoid ambiguous ownership.
+Optionally add a small composition helper if it makes the frame loop clearer:
 
-**Step 2: Update imports**
+```python
+def build_target_laplacian(vertices: np.ndarray) -> tuple[np.ndarray, np.ndarray, list[list[int]], np.ndarray]:
+    ...
+```
 
-In `retargeter/interaction_mesh_retargeter.py`, import mesh/Laplacian helpers from:
+Delete `utils/interaction_mesh.py`; it should not remain as a legacy re-export or ambiguous utility module.
+
+**Step 4: Extract solver construction into `retargeter/solver.py`**
+
+Move the CVXPY problem construction and Clarabel solve from `InteractionMeshRetargeter.solve_single_iteration()` into a function such as:
+
+```python
+def solve_sqp_step(...):
+    ...
+    return q_star, cost
+```
+
+Keep this extraction conservative:
+
+- preserve current objective terms;
+- preserve current fallback that removes the SOC trust-region constraint on the first frame if needed;
+- do not change solver tolerances or mathematical behavior;
+- pass already-computed constraint data into the solver instead of making `solver.py` call MuJoCo.
+
+**Step 5: Extract constraint data preparation into `retargeter/constraint.py`**
+
+Move helper logic that prepares solver-ready constraints out of the main retargeter class:
+
+```python
+_build_transform_qdot_to_qvel_fast
+_calc_contact_jacobian_from_point
+_calc_manipulator_jacobians
+_get_robot_link_positions
+_world_to_body_frame
+_compute_jacobian_for_contact_relative
+_prefilter_pairs_with_mj_collision
+_update_jacobians_and_phis_from_q
+```
+
+It is acceptable for `constraint.py` functions to receive the retargeter instance or an explicit state object during this phase. Prefer the minimal change that reduces `retargeter.py` size without introducing a new framework.
+
+Do not split `constraint.py` into `kinematics.py` and `collision.py` during this phase.
+
+**Step 6: Update imports**
+
+In `retargeter/retargeter.py`, import mesh/Laplacian helpers from:
 
 ```python
 from holosoma_retargeting.retargeter.interaction_mesh import ...
 ```
 
-Import transforms from:
+Import generic transforms from:
 
 ```python
-from holosoma_retargeting.utils.geometry import ...
+from holosoma_retargeting.utils.transform import ...
 ```
 
-In `cli/eval_retargeting.py`, import `transform_points_world_to_local` from `utils.geometry`.
+In `cli/eval_retargeting.py`, import `transform_points_world_to_local` from `utils.transform`.
 
-**Step 3: Update tests**
+In first-party CLI modules, import `InteractionMeshRetargeter` from `holosoma_retargeting.retargeter` or `holosoma_retargeting.retargeter.retargeter`, not from the old `interaction_mesh_retargeter` module.
 
-Replace legacy utility reexport tests with direct ownership tests:
+**Step 7: Update tests**
+
+Replace legacy utility re-export tests with direct ownership tests:
 
 ```python
 from holosoma_retargeting.retargeter import interaction_mesh
-from holosoma_retargeting.utils.geometry import transform_points_world_to_local
+from holosoma_retargeting.utils.transform import transform_points_world_to_local
 ```
 
-Keep the existing roundtrip transform test under geometry tests.
+Keep the existing point roundtrip test under transform tests.
 
-**Step 4: Run focused tests**
+Update `tests/test_retargeter_imports.py` to assert the canonical import:
+
+```python
+from holosoma_retargeting.retargeter import InteractionMeshRetargeter
+from holosoma_retargeting.retargeter.retargeter import InteractionMeshRetargeter as CanonicalRetargeter
+
+
+def test_retargeter_imports_from_canonical_package() -> None:
+    assert InteractionMeshRetargeter is CanonicalRetargeter
+```
+
+**Step 8: Run focused tests**
 
 Run:
 
@@ -513,13 +679,13 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_utils_
 
 Expected: PASS after imports are updated.
 
-**Step 5: Commit**
+**Step 9: Commit**
 
 Run:
 
 ```bash
 git add src tests
-git commit -m "refactor: keep interaction mesh helpers in retargeter"
+git commit -m "refactor: split interaction mesh retargeter modules"
 ```
 
 ---
@@ -555,7 +721,7 @@ rmdir src/holosoma_retargeting/src
 In `tests/test_retargeter_imports.py`, remove the legacy import assertion and assert the canonical import only:
 
 ```python
-from holosoma_retargeting.retargeter.interaction_mesh_retargeter import InteractionMeshRetargeter
+from holosoma_retargeting.retargeter.retargeter import InteractionMeshRetargeter
 
 
 def test_retargeter_imports_from_canonical_package() -> None:
@@ -717,4 +883,3 @@ git push
 ```
 
 Expected: branch updates on `origin/refactor-next`.
-
