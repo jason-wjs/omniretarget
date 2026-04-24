@@ -76,7 +76,9 @@ class MotionDataConfig:
         if key in JOINTS_MAPPINGS:
             return JOINTS_MAPPINGS[key]
 
-        raise ValueError(f"No joint mapping found for data_format={self.data_format}, robot_type={self.robot_type}")
+        raise ValueError(
+            f"No joint mapping found for data_format={self.data_format}, robot_type={self.robot_type}; add the mapping to JOINTS_MAPPINGS in profiles/mappings.py"
+        )
 
     @property
     def toe_names(self) -> list[str]:

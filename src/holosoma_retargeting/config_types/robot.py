@@ -119,7 +119,10 @@ class RobotConfig:
 
         if self.robot_type in _FOOT_STICKING_LINKS_BY_ROBOT:
             return list(_FOOT_STICKING_LINKS_BY_ROBOT[self.robot_type])
-        raise ValueError(f"Invalid robot type: {self.robot_type}")
+        raise ValueError(
+            f"Foot sticking links not defined for robot_type: {self.robot_type}. "
+            f"Add the robot to FOOT_STICKING_LINKS_BY_ROBOT in profiles/robots.py"
+        )
 
     FOOT_STICKING_LINKS = property(
         _foot_sticking_links,

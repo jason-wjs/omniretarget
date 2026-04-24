@@ -1,6 +1,8 @@
 import numpy as np
+import pytest
 
 from holosoma_retargeting.config_types import data_type as config_data_type
+from holosoma_retargeting.config_types.data_type import MotionDataConfig
 from holosoma_retargeting.config_types import robot as config_robot
 from holosoma_retargeting.config_types.robot import RobotConfig
 from holosoma_retargeting.profiles.mappings import JOINTS_MAPPINGS
@@ -71,3 +73,28 @@ def test_robot_profile_defaults_preserve_mutable_return_semantics() -> None:
     assert cfg.MANUAL_UB is manual_ub_override
     assert cfg.MANUAL_COST is manual_cost_override
     assert cfg.NOMINAL_TRACKING_INDICES is nominal_override
+
+
+def test_missing_joint_mapping_message_points_to_profile_mappings() -> None:
+    cfg = MotionDataConfig(data_format="smplx", robot_type="t1")
+
+    with pytest.raises(ValueError, match="profiles/mappings.py") as exc_info:
+        _ = cfg.resolved_joints_mapping
+
+    assert "No joint mapping found for data_format=smplx, robot_type=t1" in str(exc_info.value)
+
+
+def test_missing_foot_sticking_profile_message_points_to_profile_robots(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(
+        profile_robots.ROBOT_DEFAULTS,
+        "profile_without_feet",
+        {"robot_dof": 1, "robot_height": 1.0, "object_name": "ground"},
+    )
+    cfg = RobotConfig(robot_type="profile_without_feet")
+
+    with pytest.raises(ValueError, match="profiles/robots.py") as exc_info:
+        _ = cfg.FOOT_STICKING_LINKS
+
+    assert "FOOT_STICKING_LINKS_BY_ROBOT" in str(exc_info.value)
