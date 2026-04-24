@@ -21,6 +21,7 @@ import tyro
 from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.retargeting import ParallelRetargetingConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 
 # Import reusable functions from robot_retarget.py
 from holosoma_retargeting.cli.robot_retarget import (  # noqa: E402
@@ -323,12 +324,7 @@ def main(cfg: ParallelRetargetingConfig) -> None:
     print(f"Task type: {task_type}, Format: {data_format}")
     print(f"Data dir: {data_dir}, Save dir: {save_dir}")
 
-    # Ensure configs match top-level selections
-    if cfg.robot_config.robot_type != robot:
-        cfg.robot_config = RobotConfig(robot_type=robot)
-
-    if cfg.motion_data_config.robot_type != robot or cfg.motion_data_config.data_format != data_format:
-        cfg.motion_data_config = MotionDataConfig(data_format=data_format, robot_type=robot)
+    cfg = resolve_retargeting_config(cfg, data_format=data_format)
 
     if task_type == "robot_only":
         files = find_files(data_dir, data_format)

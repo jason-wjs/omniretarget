@@ -16,6 +16,7 @@ import tyro
 from holosoma_retargeting.config_types.data_conversion import DataConversionConfig  # noqa: E402
 from holosoma_retargeting.config_types.data_type import MotionDataConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.runtime import resolve_robot_and_motion_configs  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
 
 DynamicState = Tuple[
@@ -362,21 +363,12 @@ def run_simulator(args_cli: DataConversionConfig):
     if object_name is None:
         object_name = "largebox" if has_dynamic_object else None
 
-    if args_cli.robot_config.robot_type != args_cli.robot:
-        robot_config = RobotConfig(robot_type=args_cli.robot)
-    else:
-        robot_config = args_cli.robot_config
-
-    if (
-        args_cli.motion_data_config.robot_type != args_cli.robot
-        or args_cli.motion_data_config.data_format != args_cli.data_format
-    ):
-        motion_config = MotionDataConfig(
-            data_format=args_cli.data_format,
-            robot_type=args_cli.robot,
-        )
-    else:
-        motion_config = args_cli.motion_data_config
+    robot_config, motion_config = resolve_robot_and_motion_configs(
+        robot=args_cli.robot,
+        data_format=args_cli.data_format,
+        robot_config=args_cli.robot_config,
+        motion_data_config=args_cli.motion_data_config,
+    )
 
     constants = create_task_constants(
         robot_config,

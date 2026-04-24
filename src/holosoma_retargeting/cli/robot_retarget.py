@@ -21,6 +21,7 @@ from holosoma_retargeting.config_types.retargeter import RetargeterConfig  # noq
 from holosoma_retargeting.config_types.retargeting import RetargetingConfig  # noqa: E402
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 from holosoma_retargeting.config_types.task import TaskConfig  # noqa: E402
+from holosoma_retargeting.configs.runtime import resolve_retargeting_config  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
 from holosoma_retargeting.src.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
@@ -651,12 +652,7 @@ def main(cfg: RetargetingConfig) -> None:
     logger.info("Task: %s, Type: %s, Format: %s", task_name, task_type, data_format)
     logger.info("Data path: %s, Save dir: %s", data_path, save_dir)
 
-    # Ensure configs match top-level selections
-    if cfg.robot_config.robot_type != robot:
-        cfg.robot_config = RobotConfig(robot_type=robot)
-
-    if cfg.motion_data_config.robot_type != robot or cfg.motion_data_config.data_format != data_format:
-        cfg.motion_data_config = MotionDataConfig(data_format=data_format, robot_type=robot)
+    cfg = resolve_retargeting_config(cfg, data_format=data_format)
 
     # Task-specific object setup: set default object_dir for climbing if not provided
     if task_type == "climbing" and cfg.task_config.object_dir is None:

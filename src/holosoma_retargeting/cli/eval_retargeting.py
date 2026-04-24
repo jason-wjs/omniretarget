@@ -25,6 +25,7 @@ from holosoma_retargeting.config_types.data_type import (  # noqa: E402
     MotionDataConfig,
 )
 from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
+from holosoma_retargeting.configs.runtime import resolve_robot_and_motion_configs  # noqa: E402
 from holosoma_retargeting.path_utils import package_path  # noqa: E402
 from holosoma_retargeting.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
 from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
@@ -832,15 +833,12 @@ def main(cfg: Args) -> None:
 
     data_format = cfg.data_format or default_data_formats[cfg.data_type]
 
-    # Ensure configs match top-level selections
-    if cfg.robot_config.robot_type != cfg.robot:
-        cfg.robot_config = RobotConfig(robot_type=cfg.robot)
-
-    if cfg.motion_data_config.robot_type != cfg.robot or cfg.motion_data_config.data_format != data_format:
-        cfg.motion_data_config = MotionDataConfig(
-            data_format=data_format,  # data_format is now str, no cast needed
-            robot_type=cfg.robot,
-        )
+    cfg.robot_config, cfg.motion_data_config = resolve_robot_and_motion_configs(
+        robot=cfg.robot,
+        data_format=data_format,
+        robot_config=cfg.robot_config,
+        motion_data_config=cfg.motion_data_config,
+    )
 
     # Determine default object name when none provided
     if cfg.object_name is not None:
