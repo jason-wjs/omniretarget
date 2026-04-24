@@ -35,9 +35,9 @@ from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found]  
     extract_foot_sticking_sequence_velocity,
     load_intermimic_data,
     preprocess_motion_data,
-    transform_points_world_to_local,
     transform_y_up_to_z_up,
 )
+from holosoma_retargeting.utils.interaction_mesh import transform_points_world_to_local  # noqa: E402
 
 
 def create_task_constants(

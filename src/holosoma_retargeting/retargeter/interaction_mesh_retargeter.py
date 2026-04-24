@@ -18,7 +18,7 @@ from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 from holosoma_retargeting.src.mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
     _world_mesh_from_geom,
 )
-from holosoma_retargeting.src.utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
+from holosoma_retargeting.utils.interaction_mesh import (  # noqa: E402
     calculate_laplacian_coordinates,
     calculate_laplacian_matrix,
     create_interaction_mesh,
