@@ -4,7 +4,7 @@
 
 **Goal:** Execute the OmniRetarget architecture refactor in small behavior-preserving phases based on `docs/plans/2026-04-24-omniretarget-refactor-overview.md`.
 
-**Architecture:** Refactor from the outside inward. First lock down repository and documentation boundaries, then formalize CLI command locations, then centralize typed config/runtime resolution, then split profiles, retargeter code, and reusable utilities. Avoid `pipelines/`, Hydra, top-level `io/`, and broad rewrites.
+**Architecture:** Refactor from the outside inward. First lock down repository and documentation boundaries, then improve package-relative path handling, then formalize CLI command locations, then centralize typed config/runtime resolution, then split profiles, retargeter code, and reusable utilities. Avoid `pipelines/`, Hydra, top-level `io/`, and broad rewrites.
 
 **Tech Stack:** Python 3.11, uv, setuptools, pytest, Tyro, dataclasses, MuJoCo, Viser, Markdown docs
 
@@ -23,11 +23,13 @@
 
 ## Phase Gates
 
-Every phase must finish with:
+Every phase must finish with `git status --short` and the pytest command listed for that phase. Do not copy placeholder angle brackets into a shell command; substitute the concrete test files or test node ids named by the phase.
+
+Example phase gate command:
 
 ```bash
 git status --short
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q <phase-specific tests>
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_repo_doc_boundaries.py
 ```
 
 If `.venv/` does not exist yet, run:
@@ -153,7 +155,17 @@ Move still-useful command examples and usage notes from `src/holosoma_retargetin
 
 Delete `src/holosoma_retargeting/README.md`.
 
-**Step 4: Re-run documentation boundary tests**
+**Step 4: Check for stale package README references**
+
+Run:
+
+```bash
+grep -R -n --exclude='2026-04-24-omniretarget-refactor-overview.md' --exclude='2026-04-24-omniretarget-refactor-phase-plan.md' 'src/holosoma_retargeting/README.md\|src/holosoma_retargeting/README\|holosoma_retargeting/README.md\|holosoma_retargeting/README' README.md docs scripts tests
+```
+
+Expected: no output. Exit code 1 from grep is acceptable because no matches means success. The two refactor plan docs are excluded because they intentionally record the migration from the old package README path.
+
+**Step 5: Re-run documentation boundary tests**
 
 Run:
 
@@ -163,7 +175,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_repo_d
 
 Expected: PASS.
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 Run:
 
@@ -173,7 +185,85 @@ git rm src/holosoma_retargeting/README.md
 git commit -m "docs: keep project readme at repository root"
 ```
 
-### Task 3: Phase 2 - Formal CLI Command Modules with Compatibility Wrappers
+### Task 3: Phase 2 - Package Path Handling and CWD Independence
+
+**Files:**
+- Modify: `src/holosoma_retargeting/path_utils.py`
+- Modify as needed: `src/holosoma_retargeting/config_types/robot.py`
+- Modify as needed: `src/holosoma_retargeting/config_types/viser.py`
+- Modify as needed: `src/holosoma_retargeting/src/utils.py`
+- Modify: `tests/test_package_paths.py`
+
+**Intent:** Improve package-relative path handling before moving executable workflows, so later CLI modules do not preserve current working directory assumptions.
+
+**Allowed changes:**
+- Add or strengthen tests for package-relative model and demo-data paths.
+- Add lightweight helpers to `path_utils.py` for resolving packaged resources.
+- Update direct path defaults or helper call sites that currently depend on the caller's current working directory.
+- Preserve absolute path passthrough behavior for user-provided paths.
+
+**Forbidden changes:**
+- No CLI module moves.
+- No command behavior rewrites beyond replacing fragile path construction.
+- No movement or reorganization of `models/` or `demo_data/`.
+- No heavyweight asset resolver class, registry, plugin layer, or top-level `io/` package.
+- No changes to package metadata unless a test shows existing package data is not included.
+
+**Step 1: Add or strengthen package path tests**
+
+Extend `tests/test_package_paths.py` to cover:
+
+- `package_path()` resolves packaged files under `models/` and `demo_data/`;
+- relevant robot and Viser config defaults point to package-local assets;
+- selected runtime helpers keep working when the current working directory is changed to a temporary directory;
+- absolute user paths are returned unchanged.
+
+**Step 2: Run the focused path tests to establish the baseline**
+
+Run:
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_package_paths.py
+```
+
+Expected: FAIL if any added cwd-independence or package-path assertion exposes current fragile path behavior; otherwise PASS and use the passing result as a regression baseline before implementation.
+
+**Step 3: Implement lightweight path helpers**
+
+Keep `path_utils.py` small and package-relative. It may expose helpers such as:
+
+```python
+def package_path(relative_path: str | Path) -> Path: ...
+def model_path(relative_path: str | Path) -> Path: ...
+def demo_data_path(relative_path: str | Path) -> Path: ...
+```
+
+The helpers should resolve paths relative to `src/holosoma_retargeting/`, preserve absolute user paths, and avoid creating a broader asset resolver abstraction.
+
+**Step 4: Replace fragile package path call sites**
+
+Update only the call sites needed by the tests, such as robot URDF defaults, Viser defaults, height-dictionary lookup, or other package-local resource references. Keep the `models/` and `demo_data/` directory layouts unchanged.
+
+**Step 5: Re-run package path tests and focused smoke coverage**
+
+Run:
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_package_paths.py tests/test_adam_pro_cli_smoke.py
+```
+
+Expected: PASS or only known environment-related skips.
+
+**Step 6: Commit**
+
+Run:
+
+```bash
+git add src/holosoma_retargeting/path_utils.py src/holosoma_retargeting/config_types src/holosoma_retargeting/src tests/test_package_paths.py
+git commit -m "refactor: centralize package path helpers"
+```
+
+### Task 4: Phase 3 - Formal CLI Command Modules with Compatibility Wrappers
 
 **Files:**
 - Create: `src/holosoma_retargeting/cli/__init__.py`
@@ -181,10 +271,12 @@ git commit -m "docs: keep project readme at repository root"
 - Create: `src/holosoma_retargeting/cli/parallel_robot_retarget.py`
 - Create: `src/holosoma_retargeting/cli/eval_retargeting.py`
 - Create: `src/holosoma_retargeting/cli/viser_player.py`
+- Create: `src/holosoma_retargeting/cli/viser_body_vel_player.py`
 - Modify: `src/holosoma_retargeting/examples/robot_retarget.py`
 - Modify: `src/holosoma_retargeting/examples/parallel_robot_retarget.py`
 - Modify: `src/holosoma_retargeting/evaluation/eval_retargeting.py`
 - Modify: `src/holosoma_retargeting/viser_player.py`
+- Modify: `src/holosoma_retargeting/data_conversion/viser_body_vel_player.py`
 - Modify: `tests/test_module_entrypoints.py`
 
 **Intent:** Introduce the target `cli/` command surface without breaking old import paths.
@@ -228,6 +320,10 @@ Modify `tests/test_module_entrypoints.py` to include:
             "holosoma_retargeting.cli.viser_player",
             ["holosoma_retargeting.cli.viser_player"],
         ),
+        (
+            "holosoma_retargeting.cli.viser_body_vel_player",
+            ["holosoma_retargeting.cli.viser_body_vel_player"],
+        ),
 ```
 
 **Step 2: Run the import test to verify it fails**
@@ -248,6 +344,7 @@ Move implementations:
 - `src/holosoma_retargeting/examples/parallel_robot_retarget.py` -> `src/holosoma_retargeting/cli/parallel_robot_retarget.py`
 - `src/holosoma_retargeting/evaluation/eval_retargeting.py` -> `src/holosoma_retargeting/cli/eval_retargeting.py`
 - `src/holosoma_retargeting/viser_player.py` -> `src/holosoma_retargeting/cli/viser_player.py`
+- `src/holosoma_retargeting/data_conversion/viser_body_vel_player.py` -> `src/holosoma_retargeting/cli/viser_body_vel_player.py`
 
 Update imports inside moved files from old command paths to new command paths. For example:
 
@@ -284,12 +381,14 @@ Use the same wrapper pattern for:
 - `src/holosoma_retargeting/examples/parallel_robot_retarget.py`
 - `src/holosoma_retargeting/evaluation/eval_retargeting.py`
 - `src/holosoma_retargeting/viser_player.py`
+- `src/holosoma_retargeting/data_conversion/viser_body_vel_player.py`
 
 Use each command's existing config class in its wrapper:
 
 - `ParallelRetargetingConfig` for `parallel_robot_retarget.py`
 - `Args` for `eval_retargeting.py`
 - `ViserConfig` for `viser_player.py`
+- `Config` for `viser_body_vel_player.py`
 
 **Step 5: Re-run import tests**
 
@@ -316,11 +415,11 @@ Expected: PASS or only known environment-related skips.
 Run:
 
 ```bash
-git add src/holosoma_retargeting/cli src/holosoma_retargeting/examples src/holosoma_retargeting/evaluation src/holosoma_retargeting/viser_player.py tests/test_module_entrypoints.py
+git add src/holosoma_retargeting/cli src/holosoma_retargeting/examples src/holosoma_retargeting/evaluation src/holosoma_retargeting/viser_player.py src/holosoma_retargeting/data_conversion/viser_body_vel_player.py tests/test_module_entrypoints.py
 git commit -m "refactor: move executable workflows into cli modules"
 ```
 
-### Task 4: Phase 3 - Data Processing CLI Modules
+### Task 5: Phase 4 - Data Processing CLI Modules
 
 **Files:**
 - Create: `src/holosoma_retargeting/cli/data_process/__init__.py`
@@ -345,6 +444,7 @@ git commit -m "refactor: move executable workflows into cli modules"
 - No changes to conversion algorithms.
 - No format adapter package.
 - No broad utility extraction yet.
+- No replay or visualization command moves in this phase; `viser_body_vel_player.py` belongs under `cli/`, not `cli/data_process/`.
 
 **Step 1: Add failing import tests for new data-process modules**
 
@@ -388,7 +488,7 @@ Move:
 - `src/holosoma_retargeting/data_utils/prep_optitrack_for_rt.py` -> `src/holosoma_retargeting/cli/data_process/prep_optitrack_for_rt.py`
 - `src/holosoma_retargeting/data_utils/extract_global_positions.py` -> `src/holosoma_retargeting/cli/data_process/extract_global_positions.py`
 
-Replace old files with wrappers using the same pattern as Phase 2.
+Replace old files with wrappers using the same pattern as Phase 3.
 
 **Step 4: Re-run import tests**
 
@@ -419,7 +519,7 @@ git add src/holosoma_retargeting/cli src/holosoma_retargeting/data_conversion sr
 git commit -m "refactor: move data processing commands under cli"
 ```
 
-### Task 5: Phase 4 - Centralize Config Runtime Resolution
+### Task 6: Phase 5 - Centralize Config Runtime Resolution
 
 **Files:**
 - Create: `src/holosoma_retargeting/configs/__init__.py`
@@ -533,7 +633,7 @@ git add src/holosoma_retargeting/configs src/holosoma_retargeting/cli tests/test
 git commit -m "refactor: centralize runtime config resolution"
 ```
 
-### Task 6: Phase 5 - Split Built-in Profiles from Config Schema
+### Task 7: Phase 6 - Split Built-in Profiles from Config Schema
 
 **Files:**
 - Create: `src/holosoma_retargeting/profiles/__init__.py`
@@ -617,7 +717,7 @@ git add src/holosoma_retargeting/profiles src/holosoma_retargeting/config_types 
 git commit -m "refactor: move built-in defaults into profiles"
 ```
 
-### Task 7: Phase 6 - Move Retargeter Module with Legacy Shim
+### Task 8: Phase 7 - Move Retargeter Module with Legacy Shim
 
 **Files:**
 - Create: `src/holosoma_retargeting/retargeter/__init__.py`
@@ -700,7 +800,7 @@ git add src/holosoma_retargeting/retargeter src/holosoma_retargeting/src/interac
 git commit -m "refactor: move interaction mesh retargeter into retargeter package"
 ```
 
-### Task 8: Phase 7 - Split Utilities Only Where Readability Improves
+### Task 9: Phase 8 - Split Utilities Only Where Readability Improves
 
 **Files:**
 - Create as needed: `src/holosoma_retargeting/utils/*.py`
@@ -772,9 +872,9 @@ git add src/holosoma_retargeting/utils src/holosoma_retargeting/src tests
 git commit -m "refactor: move <utility responsibility> helpers into utils"
 ```
 
-Repeat Task 8 for each utility slice. Stop when the remaining old utility files are either compatibility wrappers or still too coupled to move safely.
+Repeat Task 9 for each utility slice. Stop when the remaining old utility files are either compatibility wrappers or still too coupled to move safely.
 
-### Task 9: Phase 8 - Console Scripts, Shell Wrappers, and Compatibility Cleanup
+### Task 10: Phase 9 - Console Scripts, Shell Wrappers, and Compatibility Cleanup
 
 **Files:**
 - Modify: `pyproject.toml`
@@ -803,6 +903,7 @@ omniretarget-retarget = "holosoma_retargeting.cli.robot_retarget:entrypoint"
 omniretarget-batch = "holosoma_retargeting.cli.parallel_robot_retarget:entrypoint"
 omniretarget-eval = "holosoma_retargeting.cli.eval_retargeting:entrypoint"
 omniretarget-replay = "holosoma_retargeting.cli.viser_player:entrypoint"
+omniretarget-replay-body-vel = "holosoma_retargeting.cli.viser_body_vel_player:entrypoint"
 omniretarget-convert = "holosoma_retargeting.cli.data_process.convert_data_format_mj:entrypoint"
 omniretarget-prep-amass = "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt:entrypoint"
 omniretarget-prep-optitrack = "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt:entrypoint"
@@ -820,6 +921,7 @@ uv sync
 .venv/bin/omniretarget-retarget --help
 .venv/bin/omniretarget-eval --help
 .venv/bin/omniretarget-convert --help
+.venv/bin/omniretarget-replay-body-vel --help
 ```
 
 Expected: each command prints help and exits successfully.

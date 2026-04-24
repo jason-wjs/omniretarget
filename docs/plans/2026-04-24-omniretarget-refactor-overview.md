@@ -92,6 +92,7 @@ Expected early command modules include:
 - `cli/parallel_robot_retarget.py`
 - `cli/eval_retargeting.py`
 - `cli/viser_player.py`
+- `cli/viser_body_vel_player.py`
 
 ### `cli/data_process/`
 
@@ -237,7 +238,7 @@ This directory is a post-retargeting conversion workflow.
 
 Its main role is converting retargeted robot trajectories into downstream formats such as RL whole-body tracking data, including interpolation, MuJoCo replay, velocity computation, and body-state export.
 
-Executable conversion entrypoints should move into `cli/data_process/` or another command module under `cli/` if the command is primarily replay or visualization. Reusable low-level helpers can move into `utils/`.
+Executable conversion entrypoints should move into `cli/data_process/` or another command module under `cli/` if the command is primarily replay or visualization. For example, the body-velocity Viser player should move to `cli/viser_body_vel_player.py` because it is a replay and visualization command, not a dataset conversion command. Reusable low-level helpers can move into `utils/`.
 
 ### `evaluation/`
 
