@@ -18,12 +18,12 @@ from scipy.spatial.transform import Rotation as R  # type: ignore[import-untyped
 
 from holosoma_retargeting.path_utils import package_path
 from holosoma_retargeting.utils.interaction_mesh import (
-    calculate_laplacian_coordinates,
-    calculate_laplacian_matrix,
-    create_interaction_mesh,
-    get_adjacency_list,
-    transform_points_local_to_world,
-    transform_points_world_to_local,
+    calculate_laplacian_coordinates as calculate_laplacian_coordinates,
+    calculate_laplacian_matrix as calculate_laplacian_matrix,
+    create_interaction_mesh as create_interaction_mesh,
+    get_adjacency_list as get_adjacency_list,
+    transform_points_local_to_world as transform_points_local_to_world,
+    transform_points_world_to_local as transform_points_world_to_local,
 )
 
 
