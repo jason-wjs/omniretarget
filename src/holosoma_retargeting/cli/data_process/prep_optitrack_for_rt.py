@@ -80,5 +80,9 @@ def main(cfg: Config) -> None:
         print(f"Converted {pkl_file} -> {output_path}")
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     main(tyro.cli(Config))
+
+
+if __name__ == "__main__":
+    entrypoint()

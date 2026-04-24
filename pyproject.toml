@@ -33,6 +33,17 @@ dependencies = [
     "tyro",
 ]
 
+[project.scripts]
+omniretarget-retarget = "holosoma_retargeting.cli.robot_retarget:entrypoint"
+omniretarget-batch = "holosoma_retargeting.cli.parallel_robot_retarget:entrypoint"
+omniretarget-eval = "holosoma_retargeting.cli.eval_retargeting:entrypoint"
+omniretarget-replay = "holosoma_retargeting.cli.viser_player:entrypoint"
+omniretarget-replay-body-vel = "holosoma_retargeting.cli.viser_body_vel_player:entrypoint"
+omniretarget-convert = "holosoma_retargeting.cli.data_process.convert_data_format_mj:entrypoint"
+omniretarget-prep-amass = "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt:entrypoint"
+omniretarget-prep-optitrack = "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt:entrypoint"
+omniretarget-extract-global-positions = "holosoma_retargeting.cli.data_process.extract_global_positions:entrypoint"
+
 [dependency-groups]
 dev = ["mypy", "ruff", "pytest"]
 

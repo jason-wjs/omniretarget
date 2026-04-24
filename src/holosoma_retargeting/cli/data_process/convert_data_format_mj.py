@@ -591,7 +591,10 @@ def main(args_cli: DataConversionConfig):
     run_simulator(args_cli)
 
 
-if __name__ == "__main__":
-    # run the main function
+def entrypoint() -> None:
     tyro_config = tyro.cli(DataConversionConfig)
     main(tyro_config)
+
+
+if __name__ == "__main__":
+    entrypoint()

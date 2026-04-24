@@ -6,7 +6,7 @@ REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
 cd "${REPO_ROOT}/src/holosoma_retargeting"
 
-uv run python evaluation/eval_retargeting.py \
+uv run omniretarget-eval \
   --res-dir "demo_results_parallel/adam_pro/robot_only/omomo" \
   --data-dir "demo_data/OMOMO_new" \
   --data-type robot_only \

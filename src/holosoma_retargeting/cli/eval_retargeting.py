@@ -907,6 +907,10 @@ def main(cfg: Args) -> None:
         print(f"{k}: mean={mean_k:.6f}, std={std_k:.6f}")
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(Args)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()

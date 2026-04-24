@@ -759,6 +759,10 @@ def main(cfg: RetargetingConfig) -> None:
         input("Press Enter to exit ...")
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(RetargetingConfig)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()

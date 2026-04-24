@@ -295,9 +295,13 @@ def main(cfg: Config) -> None:
         time.sleep(0.002)
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(Config)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()
 
 """
 python viser_body_vel_player.py \

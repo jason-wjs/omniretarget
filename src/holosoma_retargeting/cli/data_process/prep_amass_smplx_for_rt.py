@@ -333,9 +333,13 @@ def main(cfg: Config):
     print("All data processed successfully")
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(Config)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()
 
 """
     "pelvis",

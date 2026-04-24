@@ -11,7 +11,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 # - input-dir: demo_data/mocap_optitrack
 # - output-dir: demo_data/optitrack_npz
 # - height: 1.7 (fixed operator height for this dataset)
-uv run python data_utils/prep_optitrack_for_rt.py \
+uv run omniretarget-prep-optitrack \
   --input-dir "demo_data/mocap_optitrack" \
   --output-dir "demo_data/optitrack_npz" \
   --height 1.7 \

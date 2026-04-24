@@ -10,7 +10,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 # Defaults (adjust or override via "$@"):
 # - input-dir: demo_data/lafan1_raw_bvh
 # - output-dir: demo_data/lafan1
-uv run python data_utils/extract_global_positions.py \
+uv run omniretarget-extract-global-positions \
   --input-dir "demo_data/lafan1_raw_bvh" \
   --output-dir "demo_data/lafan1" \
   "$@"

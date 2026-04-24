@@ -388,6 +388,10 @@ def main(cfg: ParallelRetargetingConfig) -> None:
     print(f"Results saved to: {save_dir}")
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(ParallelRetargetingConfig)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()

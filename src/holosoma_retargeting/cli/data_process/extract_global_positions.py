@@ -97,6 +97,10 @@ def main(cfg: Config):
         np.save(str(output_npy), result["positions"])
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(Config)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()

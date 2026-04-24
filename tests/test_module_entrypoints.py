@@ -2,9 +2,27 @@ from __future__ import annotations
 
 import importlib
 import sys
+import tomllib
 from types import ModuleType
 
 import pytest
+
+from tests.path_helpers import REPO_ROOT
+
+
+REQUIRED_CONSOLE_SCRIPTS = {
+    "omniretarget-retarget": "holosoma_retargeting.cli.robot_retarget:entrypoint",
+    "omniretarget-batch": "holosoma_retargeting.cli.parallel_robot_retarget:entrypoint",
+    "omniretarget-eval": "holosoma_retargeting.cli.eval_retargeting:entrypoint",
+    "omniretarget-replay": "holosoma_retargeting.cli.viser_player:entrypoint",
+    "omniretarget-replay-body-vel": "holosoma_retargeting.cli.viser_body_vel_player:entrypoint",
+    "omniretarget-convert": "holosoma_retargeting.cli.data_process.convert_data_format_mj:entrypoint",
+    "omniretarget-prep-amass": "holosoma_retargeting.cli.data_process.prep_amass_smplx_for_rt:entrypoint",
+    "omniretarget-prep-optitrack": "holosoma_retargeting.cli.data_process.prep_optitrack_for_rt:entrypoint",
+    "omniretarget-extract-global-positions": (
+        "holosoma_retargeting.cli.data_process.extract_global_positions:entrypoint"
+    ),
+}
 
 
 class NoInsertPath(list[str]):
@@ -177,3 +195,15 @@ def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: st
     monkeypatch.setattr(sys, "path", NoInsertPath(sys.path))
 
     importlib.import_module(module_name)
+
+
+def test_project_declares_official_console_scripts(monkeypatch) -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert pyproject["project"]["scripts"] == REQUIRED_CONSOLE_SCRIPTS
+
+    _stub_optional_entrypoint_dependencies(monkeypatch)
+    for target in REQUIRED_CONSOLE_SCRIPTS.values():
+        module_name, attr_name = target.split(":", maxsplit=1)
+        module = importlib.import_module(module_name)
+        assert callable(getattr(module, attr_name))

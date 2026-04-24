@@ -114,6 +114,10 @@ def main(cfg: ViserConfig) -> None:
         time.sleep(1.0)
 
 
-if __name__ == "__main__":
+def entrypoint() -> None:
     cfg = tyro.cli(ViserConfig)
     main(cfg)
+
+
+if __name__ == "__main__":
+    entrypoint()

@@ -22,7 +22,7 @@ MODEL_ROOT="${MODEL_ROOT:-models}"
 #
 # Optional:
 # - --subdataset-folder: process one subset only (e.g. HumanEva)
-uv run python -m data_utils.prep_amass_smplx_for_rt \
+uv run omniretarget-prep-amass \
   --amass-root-folder "${AMASS_ROOT}" \
   --output-folder "${OUTPUT_DIR}" \
   --model-root-folder "${MODEL_ROOT}" \

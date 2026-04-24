@@ -7,7 +7,7 @@ REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 cd "${REPO_ROOT}/src/holosoma_retargeting"
 
 ## omomo_robot_only
-# python examples/robot_retarget.py \
+# uv run omniretarget-retarget \
 #   --robot adam_pro \
 #   --task-type robot_only \
 #   --task-name sub3_largebox_003 \
@@ -19,7 +19,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 #   "$@"
 
 ## omomo_object_interaction
-# python examples/robot_retarget.py \
+# uv run omniretarget-retarget \
 #   --robot adam_pro \
 #   --task-type object_interaction \
 #   --task-name sub3_largebox_003 \
@@ -31,7 +31,7 @@ cd "${REPO_ROOT}/src/holosoma_retargeting"
 #   "$@"
 
 ## lafan1
-uv run python examples/robot_retarget.py \
+uv run omniretarget-retarget \
   --robot adam_pro \
   --task-type robot_only \
   --task-name dance1_subject1 \
@@ -45,7 +45,7 @@ uv run python examples/robot_retarget.py \
   "$@"
 
 ## amass
-# python examples/robot_retarget.py \
+# uv run omniretarget-retarget \
 #   --robot adam_pro \
 #   --task-type robot_only \
 #   --task-name demo_data_AMASS_E6_-_quick_retreat_stageii \
@@ -57,7 +57,7 @@ uv run python examples/robot_retarget.py \
 #   "$@"
 
 ## optitrack
-# python examples/robot_retarget.py \
+# uv run omniretarget-retarget \
 #   --robot adam_pro \
 #   --task-type robot_only \
 #   --task-name turn \
@@ -67,4 +67,3 @@ uv run python examples/robot_retarget.py \
 #   --retargeter.debug \
 #   --retargeter.visualize \
 #   "$@"
-
