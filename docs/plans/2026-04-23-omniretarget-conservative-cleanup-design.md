@@ -8,14 +8,14 @@ Clean up repository/package boundaries in `omniretarget` without changing public
 
 This phase is intentionally limited to boundary hygiene:
 
-- move repo-level markdown documents out of `src/holosoma_retargeting/`
+- move repo-level markdown documents out of `src/omniretarget/`
 - delete obvious migration/runtime residue from the package tree
 - stop packaging repo docs into distribution artifacts
 - keep current code paths, CLI paths, assets, and imports stable
 
 ## Non-Goals
 
-- no package rename from `holosoma_retargeting`
+- no package rename from `omniretarget`
 - no refactor of `examples/`, `evaluation/`, `data_conversion/`, or `src/`
 - no relocation of `models/` or `demo_data/`
 - no change to `scripts/retargeting/*.sh` UX
@@ -23,10 +23,10 @@ This phase is intentionally limited to boundary hygiene:
 
 ## Design Constraints
 
-- Existing imports such as `holosoma_retargeting.examples.robot_retarget` must continue to work.
+- Existing imports such as `omniretarget.examples.robot_retarget` must continue to work.
 - Existing shell wrappers under `scripts/retargeting/` must continue to work.
 - Package-level runtime assets (`models/`, `demo_data/`, `*.jinja`) remain packaged.
-- Repo-level docs should live under `docs/`, not under `src/holosoma_retargeting/`.
+- Repo-level docs should live under `docs/`, not under `src/omniretarget/`.
 
 ## Proposed Changes
 
@@ -34,28 +34,28 @@ This phase is intentionally limited to boundary hygiene:
 
 Move the following files from the package root into `docs/`:
 
-- `src/holosoma_retargeting/ADD_MOTION_FORMAT_README.md`
-- `src/holosoma_retargeting/ADD_ROBOT_TYPE_README.md`
-- `src/holosoma_retargeting/ADAM_PRO_ROBOT_ONLY_SUMMARY.md`
+- `src/omniretarget/ADD_MOTION_FORMAT_README.md`
+- `src/omniretarget/ADD_ROBOT_TYPE_README.md`
+- `src/omniretarget/ADAM_PRO_ROBOT_ONLY_SUMMARY.md`
 
 These are not runtime assets. They describe usage, extension, and migration context at the repository level.
 
 ### 2. Keep only a package-local README in the package root
 
-Retain `src/holosoma_retargeting/README.md`, but narrow it to package-local usage:
+Retain `src/omniretarget/README.md`, but narrow it to package-local usage:
 
 - direct Python entrypoints
 - package-level path assumptions
 - links to repo docs in `docs/`
 
-This keeps `src/holosoma_retargeting` self-describing without treating the package directory as the repo docs home.
+This keeps `src/omniretarget` self-describing without treating the package directory as the repo docs home.
 
 ### 3. Remove obvious package residue
 
 Delete:
 
-- `src/holosoma_retargeting/MUJOCO_LOG.TXT`
-- `src/holosoma_retargeting/.gitignore`
+- `src/omniretarget/MUJOCO_LOG.TXT`
+- `src/omniretarget/.gitignore`
 
 These are not source code, not runtime assets, and not useful as shipped package contents.
 
@@ -82,14 +82,14 @@ This makes build artifacts closer to runtime needs and reduces distribution nois
 This phase creates a cleaner starting point for the later medium refactor:
 
 - splitting app-layer orchestration from library logic
-- renaming `src/holosoma_retargeting/src/` to a semantic module name
+- renaming `src/omniretarget/src/` to a semantic module name
 - deciding whether demo assets should remain package-local
 
 ## Success Criteria
 
-- No repo-level docs remain inside `src/holosoma_retargeting/` except the package-local README.
+- No repo-level docs remain inside `src/omniretarget/` except the package-local README.
 - No `MUJOCO_LOG.TXT` or package-local `.gitignore` remains in the package tree.
 - `MANIFEST.in` no longer includes package markdown docs.
 - `bash scripts/test_smoke.sh` still passes.
 - `uv build` still passes.
-- Built artifacts no longer package the moved markdown docs under `holosoma_retargeting/`.
+- Built artifacts no longer package the moved markdown docs under `omniretarget/`.

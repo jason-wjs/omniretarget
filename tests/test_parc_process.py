@@ -8,16 +8,16 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from holosoma_retargeting.config_types.data_type import PARC_HUMANOID_DEMO_JOINTS, MotionDataConfig
-from holosoma_retargeting.examples.parc_process import build_arg_parser
-from holosoma_retargeting.examples.robot_retarget import _compute_q_init_base, load_motion_data, validate_config
-from holosoma_retargeting.config_types.retargeting import RetargetingConfig
-from holosoma_retargeting.parc_process.output_writer import write_paired_output
-from holosoma_retargeting.parc_process.source_fk import build_source_joint_positions
-from holosoma_retargeting.parc_process.source_io import load_parc_sample
-from holosoma_retargeting.parc_process.terrain_scene import export_parc_scene
-from holosoma_retargeting.parc_process.workspace import build_parc_workspace
-from holosoma_retargeting.src.utils import transform_from_human_to_world
+from omniretarget.config_types.data_type import PARC_HUMANOID_DEMO_JOINTS, MotionDataConfig
+from omniretarget.examples.parc_process import build_arg_parser
+from omniretarget.examples.robot_retarget import _compute_q_init_base, load_motion_data, validate_config
+from omniretarget.config_types.retargeting import RetargetingConfig
+from omniretarget.parc_process.output_writer import write_paired_output
+from omniretarget.parc_process.source_fk import build_source_joint_positions
+from omniretarget.parc_process.source_io import load_parc_sample
+from omniretarget.parc_process.terrain_scene import export_parc_scene
+from omniretarget.parc_process.workspace import build_parc_workspace
+from omniretarget.src.utils import transform_from_human_to_world
 
 
 BODY_NAMES = (

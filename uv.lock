@@ -681,7 +681,7 @@ wheels = [
 ]
 
 [[package]]
-name = "holosoma-retargeting"
+name = "omniretarget"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

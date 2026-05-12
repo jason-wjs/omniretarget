@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-cd "${REPO_ROOT}/src/holosoma_retargeting"
+cd "${REPO_ROOT}/src/omniretarget"
 
 uv run python evaluation/eval_retargeting.py \
   --res-dir "demo_results_parallel/adam_pro/robot_only/omomo" \

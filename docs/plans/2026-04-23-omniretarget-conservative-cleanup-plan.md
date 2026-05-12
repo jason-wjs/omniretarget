@@ -16,11 +16,11 @@
 - Create: `docs/add-motion-format.md`
 - Create: `docs/add-robot-type.md`
 - Create: `docs/adam-pro-robot-only-summary.md`
-- Modify: `src/holosoma_retargeting/README.md`
+- Modify: `src/omniretarget/README.md`
 - Modify: `README.md`
-- Delete: `src/holosoma_retargeting/ADD_MOTION_FORMAT_README.md`
-- Delete: `src/holosoma_retargeting/ADD_ROBOT_TYPE_README.md`
-- Delete: `src/holosoma_retargeting/ADAM_PRO_ROBOT_ONLY_SUMMARY.md`
+- Delete: `src/omniretarget/ADD_MOTION_FORMAT_README.md`
+- Delete: `src/omniretarget/ADD_ROBOT_TYPE_README.md`
+- Delete: `src/omniretarget/ADAM_PRO_ROBOT_ONLY_SUMMARY.md`
 
 **Step 1: Write a failing reference test**
 
@@ -30,7 +30,7 @@ Create `tests/test_repo_doc_boundaries.py`:
 from pathlib import Path
 
 
-PACKAGE_ROOT = Path("src/holosoma_retargeting")
+PACKAGE_ROOT = Path("src/omniretarget")
 
 
 def test_repo_level_markdown_docs_are_not_stored_in_package_root() -> None:
@@ -51,12 +51,12 @@ Run:
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_repo_doc_boundaries.py -q
 ```
 
-Expected: FAIL because the three markdown files still exist in `src/holosoma_retargeting/`.
+Expected: FAIL because the three markdown files still exist in `src/omniretarget/`.
 
 **Step 3: Move the docs and update links**
 
 - Copy the content of each package-root markdown file into its new `docs/` destination.
-- Update `src/holosoma_retargeting/README.md` so it links to:
+- Update `src/omniretarget/README.md` so it links to:
   - `../../docs/add-motion-format.md`
   - `../../docs/add-robot-type.md`
 - Update root `README.md` if needed so it points to the new repo doc locations instead of package-root markdown files.
@@ -75,15 +75,15 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add docs/add-motion-format.md docs/add-robot-type.md docs/adam-pro-robot-only-summary.md README.md src/holosoma_retargeting/README.md tests/test_repo_doc_boundaries.py
+git add docs/add-motion-format.md docs/add-robot-type.md docs/adam-pro-robot-only-summary.md README.md src/omniretarget/README.md tests/test_repo_doc_boundaries.py
 git commit -m "docs: move repo docs out of package root"
 ```
 
 ### Task 2: Remove obvious package residue
 
 **Files:**
-- Delete: `src/holosoma_retargeting/MUJOCO_LOG.TXT`
-- Delete: `src/holosoma_retargeting/.gitignore`
+- Delete: `src/omniretarget/MUJOCO_LOG.TXT`
+- Delete: `src/omniretarget/.gitignore`
 - Modify: `tests/test_repo_doc_boundaries.py`
 
 **Step 1: Extend the failing boundary test**
@@ -94,8 +94,8 @@ Add:
 
 def test_package_root_does_not_keep_residue_files() -> None:
     forbidden = [
-        Path("src/holosoma_retargeting/MUJOCO_LOG.TXT"),
-        Path("src/holosoma_retargeting/.gitignore"),
+        Path("src/omniretarget/MUJOCO_LOG.TXT"),
+        Path("src/omniretarget/.gitignore"),
     ]
     for path in forbidden:
         assert not path.exists()
@@ -115,8 +115,8 @@ Expected: FAIL because both files still exist.
 
 Delete:
 
-- `src/holosoma_retargeting/MUJOCO_LOG.TXT`
-- `src/holosoma_retargeting/.gitignore`
+- `src/omniretarget/MUJOCO_LOG.TXT`
+- `src/omniretarget/.gitignore`
 
 **Step 4: Re-run the test**
 
@@ -132,7 +132,7 @@ Expected: PASS
 
 ```bash
 git add tests/test_repo_doc_boundaries.py
-git rm src/holosoma_retargeting/MUJOCO_LOG.TXT src/holosoma_retargeting/.gitignore
+git rm src/omniretarget/MUJOCO_LOG.TXT src/omniretarget/.gitignore
 git commit -m "chore: remove package residue files"
 ```
 
@@ -150,7 +150,7 @@ Add:
 
 def test_manifest_does_not_package_markdown_docs() -> None:
     manifest = Path("MANIFEST.in").read_text()
-    assert "recursive-include src/holosoma_retargeting *.md" not in manifest
+    assert "recursive-include src/omniretarget *.md" not in manifest
 ```
 
 **Step 2: Run the test to verify it fails**
@@ -168,9 +168,9 @@ Expected: FAIL because `MANIFEST.in` still includes package markdown docs.
 Update `MANIFEST.in` to keep only:
 
 ```text
-recursive-include src/holosoma_retargeting/models *
-recursive-include src/holosoma_retargeting/demo_data *
-recursive-include src/holosoma_retargeting *.jinja
+recursive-include src/omniretarget/models *
+recursive-include src/omniretarget/demo_data *
+recursive-include src/omniretarget *.jinja
 ```
 
 **Step 4: Re-run the test**
@@ -194,7 +194,7 @@ git commit -m "build: exclude repo docs from package artifacts"
 
 **Files:**
 - Review: `README.md`
-- Review: `src/holosoma_retargeting/README.md`
+- Review: `src/omniretarget/README.md`
 - Review: `docs/add-motion-format.md`
 - Review: `docs/add-robot-type.md`
 - Review: `docs/adam-pro-robot-only-summary.md`
@@ -204,7 +204,7 @@ git commit -m "build: exclude repo docs from package artifacts"
 Run:
 
 ```bash
-rg -n "ADD_MOTION_FORMAT_README|ADD_ROBOT_TYPE_README|ADAM_PRO_ROBOT_ONLY_SUMMARY" README.md docs src/holosoma_retargeting tests
+rg -n "ADD_MOTION_FORMAT_README|ADD_ROBOT_TYPE_README|ADAM_PRO_ROBOT_ONLY_SUMMARY" README.md docs src/omniretarget tests
 ```
 
 Expected:
@@ -241,11 +241,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv build
 
 Expected:
 - build succeeds
-- build logs no longer show package markdown docs being copied into `holosoma_retargeting/`
+- build logs no longer show package markdown docs being copied into `omniretarget/`
 
 **Step 5: Commit**
 
 ```bash
-git add README.md docs src/holosoma_retargeting/README.md tests/test_repo_doc_boundaries.py MANIFEST.in
+git add README.md docs src/omniretarget/README.md tests/test_repo_doc_boundaries.py MANIFEST.in
 git commit -m "test: verify conservative cleanup boundaries"
 ```

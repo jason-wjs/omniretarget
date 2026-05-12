@@ -1,7 +1,7 @@
 # OmniRetarget Migration Scope
 
 Included:
-- Python package from `src/holosoma_retargeting/`
+- Python package from `src/omniretarget/`
 - Retargeting shell entrypoints
 - Required models and demo assets referenced by retargeting code/tests
 - Retargeting tests

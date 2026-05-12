@@ -1,4 +1,4 @@
-from holosoma_retargeting.config_types.data_type import MotionDataConfig
+from omniretarget.config_types.data_type import MotionDataConfig
 
 
 def test_optitrack_adam_pro_mapping_and_constants() -> None:

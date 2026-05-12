@@ -2,7 +2,7 @@
 
 OmniRetarget is a standalone motion-retargeting repository extracted from Holosoma.
 
-The repository keeps the Python package name `holosoma_retargeting` to reduce migration risk during bootstrap. The supported focus is motion retargeting only.
+The repository keeps the Python package name `omniretarget` to reduce migration risk during bootstrap. The supported focus is motion retargeting only.
 
 ## Supported Scope
 
@@ -59,11 +59,11 @@ Run these commands from the repository root with `uv run`.
 ### Adam Pro Retargeting
 
 ```bash
-uv run python src/holosoma_retargeting/examples/robot_retarget.py \
+uv run python src/omniretarget/examples/robot_retarget.py \
   --robot adam_pro \
   --task-type robot_only \
   --task-name dance1_subject1 \
-  --data-path src/holosoma_retargeting/demo_data/lafan1_npy \
+  --data-path src/omniretarget/demo_data/lafan1_npy \
   --data-format lafan \
   --save-dir demo_results/adam_pro/robot_only/lafan1 \
   --task-config.ground-range -15 15 \
@@ -71,11 +71,11 @@ uv run python src/holosoma_retargeting/examples/robot_retarget.py \
 ```
 
 ```bash
-uv run python src/holosoma_retargeting/examples/robot_retarget.py \
+uv run python src/omniretarget/examples/robot_retarget.py \
   --robot adam_pro \
   --task-type object_interaction \
   --task-name sub3_largebox_003 \
-  --data-path src/holosoma_retargeting/demo_data/OMOMO_new \
+  --data-path src/omniretarget/demo_data/OMOMO_new \
   --data-format smplh \
   --save-dir demo_results/adam_pro/object_interaction/omomo
 ```
@@ -83,13 +83,13 @@ uv run python src/holosoma_retargeting/examples/robot_retarget.py \
 ### G1 Climbing
 
 ```bash
-uv run python src/holosoma_retargeting/examples/robot_retarget.py \
+uv run python src/omniretarget/examples/robot_retarget.py \
   --robot g1 \
   --task-type climbing \
   --task-name mocap_climb_seq_0 \
-  --data-path src/holosoma_retargeting/demo_data/climb \
+  --data-path src/omniretarget/demo_data/climb \
   --data-format mocap \
-  --robot-config.robot-urdf-file src/holosoma_retargeting/models/g1/g1_29dof_spherehand.urdf \
+  --robot-config.robot-urdf-file src/omniretarget/models/g1/g1_29dof_spherehand.urdf \
   --task-config.object-name multi_boxes \
   --save-dir demo_results/g1/climbing/mocap_climb
 ```
@@ -97,7 +97,7 @@ uv run python src/holosoma_retargeting/examples/robot_retarget.py \
 ### PARC to G1 Paired Data
 
 ```bash
-uv run python src/holosoma_retargeting/examples/parc_process.py \
+uv run python src/omniretarget/examples/parc_process.py \
   --sample /path/to/parc_initial_aug_sample.pkl \
   --source-xml /path/to/humanoid.xml \
   --output-root /tmp/parc_process_bootstrap \
@@ -109,19 +109,19 @@ Use `--dry-run` to generate the retargeting workspace without running the solver
 ### Batch Retargeting
 
 ```bash
-uv run python src/holosoma_retargeting/examples/parallel_robot_retarget.py \
+uv run python src/omniretarget/examples/parallel_robot_retarget.py \
   --robot adam_pro \
   --task-type robot_only \
   --task-config.object-name ground \
   --data-format optitrack \
-  --data-dir src/holosoma_retargeting/demo_data/optitrack_npz \
+  --data-dir src/omniretarget/demo_data/optitrack_npz \
   --save-dir demo_results_parallel/adam_pro/robot_only/optitrack
 ```
 
 ### MuJoCo Export
 
 ```bash
-uv run python src/holosoma_retargeting/data_conversion/convert_data_format_mj.py \
+uv run python src/omniretarget/data_conversion/convert_data_format_mj.py \
   --input_file demo_results/adam_pro/robot_only/lafan1/dance1_subject1.npz \
   --output_fps 50 \
   --output_name converted_res/robot_only/dance1_subject1_mj_fps50.npz \
@@ -135,18 +135,18 @@ If the input clip already follows the OmniRetarget layout, add `--use_omniretarg
 ### Replay
 
 ```bash
-uv run python src/holosoma_retargeting/viser_player.py \
+uv run python src/omniretarget/viser_player.py \
   --qpos-npz demo_results_parallel/adam_pro/object_interaction/omomo/sub3_largebox_003_original.npz \
-  --robot-urdf src/holosoma_retargeting/models/adam_pro/adam_pro_29dof.urdf \
-  --object-urdf src/holosoma_retargeting/models/largebox/largebox.urdf
+  --robot-urdf src/omniretarget/models/adam_pro/adam_pro_29dof.urdf \
+  --object-urdf src/omniretarget/models/largebox/largebox.urdf
 ```
 
 ### Quantitative Evaluation
 
 ```bash
-uv run python src/holosoma_retargeting/evaluation/eval_retargeting.py \
+uv run python src/omniretarget/evaluation/eval_retargeting.py \
   --res-dir demo_results_parallel/adam_pro/robot_only/omomo \
-  --data-dir src/holosoma_retargeting/demo_data/OMOMO_new \
+  --data-dir src/omniretarget/demo_data/OMOMO_new \
   --data-type robot_only \
   --robot adam_pro \
   --data-format smplh \

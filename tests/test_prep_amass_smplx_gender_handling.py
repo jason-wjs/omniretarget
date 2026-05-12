@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from holosoma_retargeting.data_utils.prep_amass_smplx_for_rt import run_smplx_model
+from omniretarget.data_utils.prep_amass_smplx_for_rt import run_smplx_model
 
 
 class _DummyPredBody:

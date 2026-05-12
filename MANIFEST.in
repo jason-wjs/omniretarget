@@ -1,3 +1,3 @@
-recursive-include src/holosoma_retargeting/models *
-recursive-include src/holosoma_retargeting/demo_data *
-recursive-include src/holosoma_retargeting *.jinja
+recursive-include src/omniretarget/models *
+recursive-include src/omniretarget/demo_data *
+recursive-include src/omniretarget *.jinja

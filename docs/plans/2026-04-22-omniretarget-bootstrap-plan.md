@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Extract `holosoma/src/holosoma_retargeting` into a standalone repository named `omniretarget` that runs independently of the training and inference components, while preserving current retargeting behavior before any cleanup or redesign.
+**Goal:** Extract `holosoma/src/omniretarget` into a standalone repository named `omniretarget` that runs independently of the training and inference components, while preserving current retargeting behavior before any cleanup or redesign.
 
 **Architecture:** Start with a mechanical extraction instead of a redesign. Create a new repo with the same internal package layout, copy only the retargeting package, its scripts, and its required assets, then make the smallest set of path, packaging, and docs fixes required for the copied repo to install and run by itself. Defer API cleanup, CLI polish, and asset slimming to later follow-up changes.
 
@@ -23,7 +23,7 @@
 ### Task 1: Freeze the extraction scope
 
 **Files:**
-- Review: `holosoma/src/holosoma_retargeting/`
+- Review: `holosoma/src/omniretarget/`
 - Review: `holosoma/scripts/setup_retargeting.sh`
 - Review: `holosoma/scripts/source_retargeting_setup.sh`
 - Review: `holosoma/scripts/retargeting/`
@@ -37,7 +37,7 @@
 # OmniRetarget Migration Scope
 
 Included:
-- Python package from `src/holosoma_retargeting/`
+- Python package from `src/omniretarget/`
 - Retargeting shell entrypoints
 - Required models and demo assets referenced by retargeting code/tests
 - Retargeting tests
@@ -57,7 +57,7 @@ Run:
 
 ```bash
 cd /home/humanoid/Projects/Junsong_WU/ADAM/omni
-rg -n "from holosoma_retargeting|import holosoma_retargeting" holosoma/src/holosoma holosoma/src/holosoma_inference
+rg -n "from omniretarget|import omniretarget" holosoma/src/holosoma holosoma/src/holosoma_inference
 ```
 
 Expected: no output
@@ -83,7 +83,7 @@ git commit -m "docs: define omniretarget migration scope"
 - Create: `omniretarget/pyproject.toml`
 - Create: `omniretarget/setup.py`
 - Create: `omniretarget/scripts/retargeting/`
-- Create: `omniretarget/src/holosoma_retargeting/`
+- Create: `omniretarget/src/omniretarget/`
 - Create: `omniretarget/tests/`
 
 **Step 1: Create the directory tree**
@@ -91,7 +91,7 @@ git commit -m "docs: define omniretarget migration scope"
 Run:
 
 ```bash
-mkdir -p /path/to/omniretarget/{scripts/retargeting,src/holosoma_retargeting,tests}
+mkdir -p /path/to/omniretarget/{scripts/retargeting,src/omniretarget,tests}
 ```
 
 Expected: directories created with no errors
@@ -101,8 +101,8 @@ Expected: directories created with no errors
 Run:
 
 ```bash
-cp /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/holosoma_retargeting/pyproject.toml /path/to/omniretarget/pyproject.toml
-cp /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/holosoma_retargeting/setup.py /path/to/omniretarget/setup.py
+cp /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/omniretarget/pyproject.toml /path/to/omniretarget/pyproject.toml
+cp /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/omniretarget/setup.py /path/to/omniretarget/setup.py
 ```
 
 Expected: both files exist in the new repo
@@ -112,11 +112,11 @@ Expected: both files exist in the new repo
 Run:
 
 ```bash
-cp -R /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/holosoma_retargeting/holosoma_retargeting /path/to/omniretarget/src/
-cp -R /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/holosoma_retargeting/tests /path/to/omniretarget/
+cp -R /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/omniretarget/omniretarget /path/to/omniretarget/src/
+cp -R /home/humanoid/Projects/Junsong_WU/ADAM/omni/holosoma/src/omniretarget/tests /path/to/omniretarget/
 ```
 
-Expected: `src/holosoma_retargeting/` and `tests/` exist in the new repo
+Expected: `src/omniretarget/` and `tests/` exist in the new repo
 
 **Step 4: Copy only the retargeting entrypoint scripts**
 
@@ -160,7 +160,7 @@ uv sync
 ```bash
 cd /path/to/omniretarget
 git add .
-git commit -m "chore: bootstrap omniretarget from holosoma_retargeting"
+git commit -m "chore: bootstrap omniretarget from omniretarget"
 ```
 
 ### Task 3: Adopt uv as the only environment workflow
@@ -206,10 +206,10 @@ Run:
 
 ```bash
 cd /path/to/omniretarget
-uv run python -c "import holosoma_retargeting; print(holosoma_retargeting.__file__)"
+uv run python -c "import omniretarget; print(omniretarget.__file__)"
 ```
 
-Expected: prints a path under `/path/to/omniretarget/src/holosoma_retargeting`
+Expected: prints a path under `/path/to/omniretarget/src/omniretarget`
 
 **Step 4: Remove conda bootstrap assumptions from shell entrypoints**
 
@@ -230,13 +230,13 @@ uv run python examples/robot_retarget.py ...
 Replace:
 
 ```bash
-cd "${REPO_ROOT}/src/holosoma_retargeting/holosoma_retargeting"
+cd "${REPO_ROOT}/src/omniretarget/omniretarget"
 ```
 
 With:
 
 ```bash
-cd "${REPO_ROOT}/src/holosoma_retargeting"
+cd "${REPO_ROOT}/src/omniretarget"
 ```
 
 **Step 6: Remove monorepo-specific absolute paths**
@@ -247,7 +247,7 @@ Run:
 
 ```bash
 cd /path/to/omniretarget
-rg -n "/home/humanoid|adam_reference|src/holosoma_retargeting" scripts
+rg -n "/home/humanoid|adam_reference|src/omniretarget" scripts
 ```
 
 Expected: no matches after edits
@@ -288,7 +288,7 @@ git commit -m "build: adopt uv workflow for omniretarget"
 - Modify: `omniretarget/pyproject.toml`
 - Modify: `omniretarget/setup.py`
 - Create: `omniretarget/MANIFEST.in`
-- Create: `omniretarget/src/holosoma_retargeting/README.md` if missing after copy
+- Create: `omniretarget/src/omniretarget/README.md` if missing after copy
 
 **Step 1: Make the readme path valid**
 
@@ -305,10 +305,10 @@ with `/path/to/omniretarget/README.md` present.
 Add one packaging mechanism, not both. Recommended `MANIFEST.in`:
 
 ```text
-recursive-include src/holosoma_retargeting/models *
-recursive-include src/holosoma_retargeting/demo_data *
-recursive-include src/holosoma_retargeting *.md
-recursive-include src/holosoma_retargeting *.jinja
+recursive-include src/omniretarget/models *
+recursive-include src/omniretarget/demo_data *
+recursive-include src/omniretarget *.md
+recursive-include src/omniretarget *.jinja
 ```
 
 **Step 3: Make setuptools discover the copied package correctly**
@@ -332,36 +332,36 @@ Run:
 ```bash
 cd /path/to/omniretarget
 uv sync
-uv run python -c "import holosoma_retargeting; print(holosoma_retargeting.__file__)"
+uv run python -c "import omniretarget; print(omniretarget.__file__)"
 ```
 
-Expected: install succeeds and prints a path under `/path/to/omniretarget/src/holosoma_retargeting`
+Expected: install succeeds and prints a path under `/path/to/omniretarget/src/omniretarget`
 
 **Step 5: Commit**
 
 ```bash
 cd /path/to/omniretarget
-git add pyproject.toml setup.py MANIFEST.in README.md src/holosoma_retargeting/README.md
+git add pyproject.toml setup.py MANIFEST.in README.md src/omniretarget/README.md
 git commit -m "build: package omniretarget as a standalone project"
 ```
 
 ### Task 5: Replace CWD-sensitive resource access with package-relative access
 
 **Files:**
-- Modify: `omniretarget/src/holosoma_retargeting/src/utils.py`
-- Modify: `omniretarget/src/holosoma_retargeting/config_types/robot.py`
-- Modify: `omniretarget/src/holosoma_retargeting/config_types/viser.py`
-- Modify: `omniretarget/src/holosoma_retargeting/examples/robot_retarget.py`
-- Modify: `omniretarget/src/holosoma_retargeting/examples/parallel_robot_retarget.py`
-- Modify: `omniretarget/src/holosoma_retargeting/data_conversion/convert_data_format_mj.py`
-- Modify: `omniretarget/src/holosoma_retargeting/evaluation/eval_retargeting.py`
-- Create: `omniretarget/src/holosoma_retargeting/path_utils.py`
+- Modify: `omniretarget/src/omniretarget/src/utils.py`
+- Modify: `omniretarget/src/omniretarget/config_types/robot.py`
+- Modify: `omniretarget/src/omniretarget/config_types/viser.py`
+- Modify: `omniretarget/src/omniretarget/examples/robot_retarget.py`
+- Modify: `omniretarget/src/omniretarget/examples/parallel_robot_retarget.py`
+- Modify: `omniretarget/src/omniretarget/data_conversion/convert_data_format_mj.py`
+- Modify: `omniretarget/src/omniretarget/evaluation/eval_retargeting.py`
+- Create: `omniretarget/src/omniretarget/path_utils.py`
 - Test: `omniretarget/tests/test_package_paths.py`
 
 **Step 1: Write the failing path test**
 
 ```python
-from holosoma_retargeting.path_utils import package_path
+from omniretarget.path_utils import package_path
 
 
 def test_package_path_resolves_height_dict() -> None:
@@ -437,18 +437,18 @@ Expected: PASS
 
 ```bash
 cd /path/to/omniretarget
-git add src/holosoma_retargeting tests/test_package_paths.py
+git add src/omniretarget tests/test_package_paths.py
 git commit -m "fix: resolve omniretarget assets independent of cwd"
 ```
 
 ### Task 6: Remove repo-layout import hacks from executable modules
 
 **Files:**
-- Modify: `omniretarget/src/holosoma_retargeting/examples/robot_retarget.py`
-- Modify: `omniretarget/src/holosoma_retargeting/examples/parallel_robot_retarget.py`
-- Modify: `omniretarget/src/holosoma_retargeting/data_conversion/convert_data_format_mj.py`
-- Modify: `omniretarget/src/holosoma_retargeting/evaluation/eval_retargeting.py`
-- Modify: `omniretarget/src/holosoma_retargeting/viser_player.py`
+- Modify: `omniretarget/src/omniretarget/examples/robot_retarget.py`
+- Modify: `omniretarget/src/omniretarget/examples/parallel_robot_retarget.py`
+- Modify: `omniretarget/src/omniretarget/data_conversion/convert_data_format_mj.py`
+- Modify: `omniretarget/src/omniretarget/evaluation/eval_retargeting.py`
+- Modify: `omniretarget/src/omniretarget/viser_player.py`
 - Test: `omniretarget/tests/test_module_entrypoints.py`
 
 **Step 1: Write the failing import test**
@@ -458,11 +458,11 @@ import importlib
 
 
 def test_robot_retarget_module_imports() -> None:
-    importlib.import_module("holosoma_retargeting.examples.robot_retarget")
+    importlib.import_module("omniretarget.examples.robot_retarget")
 
 
 def test_eval_module_imports() -> None:
-    importlib.import_module("holosoma_retargeting.evaluation.eval_retargeting")
+    importlib.import_module("omniretarget.evaluation.eval_retargeting")
 ```
 
 **Step 2: Run the test**
@@ -503,7 +503,7 @@ Expected: PASS
 
 ```bash
 cd /path/to/omniretarget
-git add src/holosoma_retargeting tests/test_module_entrypoints.py
+git add src/omniretarget tests/test_module_entrypoints.py
 git commit -m "refactor: use normal package imports in omniretarget entrypoints"
 ```
 
@@ -511,7 +511,7 @@ git commit -m "refactor: use normal package imports in omniretarget entrypoints"
 
 **Files:**
 - Modify: `omniretarget/README.md`
-- Modify: `omniretarget/src/holosoma_retargeting/README.md`
+- Modify: `omniretarget/src/omniretarget/README.md`
 - Delete: `omniretarget/demo_scripts/demo_omomo_wb_tracking.sh` if copied
 - Delete: `omniretarget/demo_scripts/demo_lafan_wb_tracking.sh` if copied
 - Create: `omniretarget/docs/migration-notes.md`
@@ -534,7 +534,7 @@ Run:
 
 ```bash
 cd /path/to/omniretarget
-rg -n "whole-body tracking|train_agent|holosoma_inference|src/holosoma/" README.md src/holosoma_retargeting/README.md docs scripts
+rg -n "whole-body tracking|train_agent|holosoma_inference|src/holosoma/" README.md src/omniretarget/README.md docs scripts
 ```
 
 Expected: no references that describe training or deployment as in-repo features
@@ -556,7 +556,7 @@ Not included:
 
 ```bash
 cd /path/to/omniretarget
-git add README.md src/holosoma_retargeting/README.md docs/migration-notes.md
+git add README.md src/omniretarget/README.md docs/migration-notes.md
 git commit -m "docs: scope omniretarget to retargeting only"
 ```
 
@@ -627,8 +627,8 @@ git commit -m "test: add standalone omniretarget smoke suite"
 ### Task 9: Optional size reduction after bootstrap stability
 
 **Files:**
-- Review: `omniretarget/src/holosoma_retargeting/models/`
-- Review: `omniretarget/src/holosoma_retargeting/demo_data/`
+- Review: `omniretarget/src/omniretarget/models/`
+- Review: `omniretarget/src/omniretarget/demo_data/`
 - Create: `omniretarget/docs/asset-pruning.md`
 
 **Step 1: Measure asset size by robot**
@@ -637,8 +637,8 @@ Run:
 
 ```bash
 cd /path/to/omniretarget
-du -sh src/holosoma_retargeting/models/*
-du -sh src/holosoma_retargeting/demo_data/*
+du -sh src/omniretarget/models/*
+du -sh src/omniretarget/demo_data/*
 ```
 
 Expected: size report per robot and demo dataset
@@ -655,8 +655,8 @@ Document one of these choices in `docs/asset-pruning.md`:
 Run only if approved:
 
 ```bash
-rm -rf src/holosoma_retargeting/models/<unused_robot>
-rm -rf src/holosoma_retargeting/demo_data/<unused_dataset>
+rm -rf src/omniretarget/models/<unused_robot>
+rm -rf src/omniretarget/demo_data/<unused_dataset>
 ```
 
 Expected: repository size decreases with no missing assets for supported workflows
@@ -676,6 +676,6 @@ Expected: all supported workflows still pass
 
 ```bash
 cd /path/to/omniretarget
-git add docs/asset-pruning.md src/holosoma_retargeting
+git add docs/asset-pruning.md src/omniretarget
 git commit -m "chore: prune unused omniretarget assets"
 ```

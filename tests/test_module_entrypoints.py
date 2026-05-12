@@ -15,35 +15,35 @@ class NoInsertPath(list[str]):
     ("module_name", "reset_modules"),
     [
         (
-            "holosoma_retargeting.examples.robot_retarget",
+            "omniretarget.examples.robot_retarget",
             [
-                "holosoma_retargeting.examples.robot_retarget",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
+                "omniretarget.examples.robot_retarget",
+                "omniretarget.src.interaction_mesh_retargeter",
             ],
         ),
         (
-            "holosoma_retargeting.examples.parallel_robot_retarget",
+            "omniretarget.examples.parallel_robot_retarget",
             [
-                "holosoma_retargeting.examples.parallel_robot_retarget",
-                "holosoma_retargeting.examples.robot_retarget",
-                "holosoma_retargeting.src.interaction_mesh_retargeter",
+                "omniretarget.examples.parallel_robot_retarget",
+                "omniretarget.examples.robot_retarget",
+                "omniretarget.src.interaction_mesh_retargeter",
             ],
         ),
         (
-            "holosoma_retargeting.data_conversion.convert_data_format_mj",
-            ["holosoma_retargeting.data_conversion.convert_data_format_mj"],
+            "omniretarget.data_conversion.convert_data_format_mj",
+            ["omniretarget.data_conversion.convert_data_format_mj"],
         ),
         (
-            "holosoma_retargeting.evaluation.eval_retargeting",
-            ["holosoma_retargeting.evaluation.eval_retargeting"],
+            "omniretarget.evaluation.eval_retargeting",
+            ["omniretarget.evaluation.eval_retargeting"],
         ),
         (
-            "holosoma_retargeting.viser_player",
-            ["holosoma_retargeting.viser_player"],
+            "omniretarget.viser_player",
+            ["omniretarget.viser_player"],
         ),
         (
-            "holosoma_retargeting.examples.parc_process",
-            ["holosoma_retargeting.examples.parc_process"],
+            "omniretarget.examples.parc_process",
+            ["omniretarget.examples.parc_process"],
         ),
     ],
 )

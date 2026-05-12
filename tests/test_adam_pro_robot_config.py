@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import numpy as np
-from holosoma_retargeting.config_types.robot import RobotConfig
+from omniretarget.config_types.robot import RobotConfig
 
 
 def test_adam_pro_defaults_registered() -> None:
     cfg = RobotConfig(robot_type="adam_pro")
-    from holosoma_retargeting.path_utils import package_path
+    from omniretarget.path_utils import package_path
 
     assert cfg.ROBOT_DOF == 29
     assert cfg.ROBOT_NAME == "adam_pro_29dof"

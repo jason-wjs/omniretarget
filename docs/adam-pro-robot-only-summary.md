@@ -1,6 +1,6 @@
 # Adam Pro Robot-Only Retargeting Summary
 
-This note summarizes the current `robot_only` support added for Adam Pro in `holosoma_retargeting`, plus the bash entrypoints under `scripts/retargeting`.
+This note summarizes the current `robot_only` support added for Adam Pro in `omniretarget`, plus the bash entrypoints under `scripts/retargeting`.
 
 ## Scope (Current)
 
@@ -22,13 +22,13 @@ This note summarizes the current `robot_only` support added for Adam Pro in `hol
   - Hip roll/yaw anti-twist bounds.
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/robot.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
+- `src/omniretarget/omniretarget/config_types/robot.py`
+- `src/omniretarget/omniretarget/examples/robot_retarget.py`
 
 ### 2) Adam Pro model refinements for retargeting XML/URDF flow
 
 Model file:
-- `src/holosoma_retargeting/holosoma_retargeting/models/adam_pro/adam_pro_29dof.xml`
+- `src/omniretarget/omniretarget/models/adam_pro/adam_pro_29dof.xml`
 
 Current retargeting-relevant details include:
 - Retargeting-only `ground` plane in XML.
@@ -69,7 +69,7 @@ Adam Pro joint/link mapping added for:
 Also added OptiTrack mapping for `g1`.
 
 Main file:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/data_type.py`
+- `src/omniretarget/omniretarget/config_types/data_type.py`
 
 ### 4) OptiTrack support (custom format path)
 
@@ -79,8 +79,8 @@ Main file:
   - default height used: `1.7`
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/config_types/data_type.py`
-- `src/holosoma_retargeting/holosoma_retargeting/data_utils/prep_optitrack_for_rt.py`
+- `src/omniretarget/omniretarget/config_types/data_type.py`
+- `src/omniretarget/omniretarget/data_utils/prep_optitrack_for_rt.py`
 
 ### 5) Grounding behavior for OptiTrack robot-only
 
@@ -90,8 +90,8 @@ Main files:
 - This differs from non-OptiTrack defaults and improves floor grounding stability for OptiTrack data.
 
 Main files:
-- `src/holosoma_retargeting/holosoma_retargeting/examples/robot_retarget.py`
-- `src/holosoma_retargeting/holosoma_retargeting/examples/parallel_robot_retarget.py`
+- `src/omniretarget/omniretarget/examples/robot_retarget.py`
+- `src/omniretarget/omniretarget/examples/parallel_robot_retarget.py`
 
 ## Bash Usage (`scripts/retargeting`)
 

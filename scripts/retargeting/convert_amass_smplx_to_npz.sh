@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-cd "${REPO_ROOT}/src/holosoma_retargeting"
+cd "${REPO_ROOT}/src/omniretarget"
 
 # Use vendored human_body_prior package for SMPL-X body model loading.
 export PYTHONPATH="${PWD}/data_utils/human_body_prior:${PYTHONPATH:-}"

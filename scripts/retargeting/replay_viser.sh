@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-cd "${REPO_ROOT}/src/holosoma_retargeting"
+cd "${REPO_ROOT}/src/omniretarget"
 
 QPOS_NPZ="${QPOS_NPZ:-demo_results/adam_pro/robot_only/omomo/sub3_largebox_003.npz}"
 

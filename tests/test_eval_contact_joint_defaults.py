@@ -1,4 +1,4 @@
-from holosoma_retargeting.evaluation.eval_retargeting import RetargetingEvaluator
+from omniretarget.evaluation.eval_retargeting import RetargetingEvaluator
 
 
 def test_object_contact_defaults_prefer_smpl_wrists() -> None:
