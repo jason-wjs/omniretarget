@@ -371,7 +371,11 @@ def transform_from_human_to_world(human_initial_root, object_initial_pose, local
         tuple: (world_translation, quaternion) - transformed translation and rotation.
     """
     human_to_object_2d = object_initial_pose[-3:-1] - human_initial_root[:2]
-    x_axis_2d = human_to_object_2d / np.linalg.norm(human_to_object_2d)
+    norm = np.linalg.norm(human_to_object_2d)
+    if norm < 1e-8:
+        x_axis_2d = np.array([1.0, 0.0])
+    else:
+        x_axis_2d = human_to_object_2d / norm
     x_axis = np.array([x_axis_2d[0], x_axis_2d[1], 0.0])
     z_axis = np.array([0.0, 0.0, 1.0])
     y_axis = np.cross(z_axis, x_axis)

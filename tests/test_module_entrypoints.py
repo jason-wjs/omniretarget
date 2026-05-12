@@ -41,6 +41,10 @@ class NoInsertPath(list[str]):
             "holosoma_retargeting.viser_player",
             ["holosoma_retargeting.viser_player"],
         ),
+        (
+            "holosoma_retargeting.examples.parc_process",
+            ["holosoma_retargeting.examples.parc_process"],
+        ),
     ],
 )
 def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: str, reset_modules: list[str]) -> None:

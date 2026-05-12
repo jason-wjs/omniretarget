@@ -183,8 +183,8 @@ def validate_config(cfg: RetargetingConfig) -> None:
         )
 
     # Task-specific format requirements
-    if cfg.task_type == "climbing" and cfg.data_format not in (None, "mocap"):
-        raise ValueError("Climbing task requires 'mocap' data format")
+    if cfg.task_type == "climbing" and cfg.data_format not in (None, "mocap", "parc_humanoid"):
+        raise ValueError("Climbing task requires 'mocap' or 'parc_humanoid' data format")
     if cfg.task_type == "object_interaction" and cfg.data_format not in (None, "smplh"):
         raise ValueError("Object interaction requires 'smplh' data format")
     # robot_only accepts any format in the registry (already validated above)
@@ -302,9 +302,9 @@ def load_motion_data(
             raise FileNotFoundError(f"No .npy file found in {task_dir}")
 
         npy_file = npy_files[0]
-        # MOCAP-specific downsample factor
-        downsample = 4
-        human_joints = np.load(str(npy_file))[::downsample]
+        human_joints = np.load(str(npy_file))
+        if data_format == "mocap":
+            human_joints = human_joints[::4]
         num_frames = human_joints.shape[0]
         object_poses = np.tile(np.array([[1, 0, 0, 0, 0, 0, 0]]), (num_frames, 1))
         default_human_height = motion_data_config.default_human_height or 1.78
@@ -453,7 +453,12 @@ def _compute_q_init_base(
         _, human_quat_init = transform_from_human_to_world(
             human_joints[0, 0, :], object_poses[0], np.array([0.0, 0.0, 0.0])
         )
-        spine_joint_idx = retargeter.demo_joints.index("Spine1")
+        if "Spine1" in retargeter.demo_joints:
+            spine_joint_idx = retargeter.demo_joints.index("Spine1")
+        elif "torso" in retargeter.demo_joints:
+            spine_joint_idx = retargeter.demo_joints.index("torso")
+        else:
+            spine_joint_idx = 0
         # MuJoCo order: pos first, then quat
         q_init_base = np.concatenate(
             [

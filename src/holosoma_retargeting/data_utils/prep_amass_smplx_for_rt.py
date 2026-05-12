@@ -15,8 +15,6 @@ _VENDORED_HBP_ROOT = Path(__file__).resolve().parent / "human_body_prior"
 if _VENDORED_HBP_ROOT.is_dir() and str(_VENDORED_HBP_ROOT) not in sys.path:
     sys.path.insert(0, str(_VENDORED_HBP_ROOT))
 
-from human_body_prior.body_model.body_model import BodyModel  # type: ignore[import-not-found]
-
 
 def _normalize_gender_token(value: object) -> str:
     """Normalize AMASS gender values to one of: male/female/neutral."""
@@ -166,6 +164,8 @@ def run_smplx_model(
 
 
 def prep_smplx_model(model_root_folder):
+    from human_body_prior.body_model.body_model import BodyModel  # type: ignore[import-not-found]
+
     # Prepare SMPLX model
     support_base_dir = model_root_folder
     surface_model_type = "smplx"
