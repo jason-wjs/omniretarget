@@ -1,23 +1,14 @@
 # OmniRetarget
 
-OmniRetarget is a standalone motion-retargeting repository extracted from Holosoma.
-
-The repository keeps the Python package name `omniretarget` to reduce migration risk during bootstrap. The supported focus is motion retargeting only.
+This project implements the retargeting pipeline described in [arXiv:2509.26633](https://arxiv.org/abs/2509.26633). Its overall project structure is inspired by [amazon-far/holosoma](https://github.com/amazon-far/holosoma).
 
 ## Supported Scope
 
-- Robots: G1, T1, Adam Pro
+- Robots: G1, T1, PND Adam Pro
 - Tasks: `robot_only`, `object_interaction`, `climbing`
-- Motion formats: LAFAN, SMPL-H, SMPL-X, OptiTrack, MOCAP, PARC humanoid
+- Motion formats: LAFAN, SMPL-H, SMPL-X, OptiTrack, MOCAP, PARC terrain-motion pairs
 - Workflows: single-clip retargeting, batch retargeting, source-data conversion, MuJoCo export, Viser replay, quantitative evaluation
-- PARC/G1 support: compile PARC `initial_aug` terrain-motion samples into G1 paired dataset artifacts
-
-## Intentionally Not Migrated
-
-- Policy training
-- Real-robot deployment code
-- Monorepo demo pipelines that depend on non-retargeting components
-- `holosoma/` training and inference packages
+- PARC/G1 support: retarget PARC terrain-motion pairs to the G1 robot
 
 ## Setup
 
@@ -37,6 +28,17 @@ To run the real PARC integration test, set:
 export PARC_SAMPLE_PATH=/path/to/parc_sample.pkl
 export PARC_HUMANOID_XML=/path/to/humanoid.xml
 ```
+
+## Demo Data
+
+Demo inputs live under `src/omniretarget/demo_data/` and cover the supported source formats:
+
+- `lafan1_npy/`: LAFAN-style robot-only motion examples
+- `OMOMO_new/`: SMPL-H object-interaction examples
+- `amass_npz/`: SMPL-X/AMASS-style motion examples
+- `custom_optitrack_npz/`: OptiTrack-style motion examples
+- `climb/`: MOCAP climbing examples with terrain/object assets
+- `parc/`: PARC terrain-motion pair examples for G1 paired-data processing
 
 ## Recommended Entry Points
 
@@ -98,7 +100,7 @@ uv run python src/omniretarget/examples/robot_retarget.py \
 
 ```bash
 uv run python src/omniretarget/examples/parc_process.py \
-  --sample /path/to/parc_initial_aug_sample.pkl \
+  --sample src/omniretarget/demo_data/parc/mid_blocks_001_dm_aug001_dm.pkl \
   --source-xml /path/to/humanoid.xml \
   --output-root /tmp/parc_process_bootstrap \
   --retarget-save-dir /tmp/parc_process_workspace
