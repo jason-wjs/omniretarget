@@ -181,4 +181,3 @@ Known external prerequisites:
 
 - `docs/add-motion-format.md`
 - `docs/add-robot-type.md`
-- `docs/adam-pro-robot-only-summary.md`
