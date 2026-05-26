@@ -34,6 +34,10 @@ class NoInsertPath(list[str]):
             ["omniretarget.data_conversion.convert_data_format_mj"],
         ),
         (
+            "omniretarget.data_conversion.convert_data_format_parc_mj",
+            ["omniretarget.data_conversion.convert_data_format_parc_mj"],
+        ),
+        (
             "omniretarget.evaluation.eval_retargeting",
             ["omniretarget.evaluation.eval_retargeting"],
         ),
@@ -44,6 +48,10 @@ class NoInsertPath(list[str]):
         (
             "omniretarget.examples.parc_process",
             ["omniretarget.examples.parc_process"],
+        ),
+        (
+            "omniretarget.examples.parc_batch_process_to_mj",
+            ["omniretarget.examples.parc_batch_process_to_mj"],
         ),
     ],
 )

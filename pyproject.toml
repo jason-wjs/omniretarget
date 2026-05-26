@@ -46,3 +46,11 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["omniretarget*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "-q",
+    "--ignore=tests/test_prep_amass_smplx_gender_handling.py",
+    "--ignore=tests/test_adam_pro_cli_smoke.py",
+]

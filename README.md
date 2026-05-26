@@ -42,16 +42,27 @@ Demo inputs live under `src/omniretarget/demo_data/` and cover the supported sou
 
 ## Recommended Entry Points
 
-The shell wrappers under `scripts/retargeting/` are the supported entry points from the repository root.
+The shell wrappers under `scripts/` are the supported entry points from the repository root.
 
 ```bash
-bash scripts/retargeting/retarget_single_clip.sh
-bash scripts/retargeting/retarget_batch_clips.sh
-bash scripts/retargeting/convert_lafan_bvh_to_npy.sh
-bash scripts/retargeting/convert_optitrack_pkl_to_npz.sh
-bash scripts/retargeting/convert_amass_smplx_to_npz.sh
-bash scripts/retargeting/eval.sh
-bash scripts/retargeting/replay_viser.sh
+bash scripts/retarget_single_clip.sh
+bash scripts/retarget_batch_clips.sh
+bash scripts/convert_lafan_bvh_to_npy.sh
+bash scripts/convert_optitrack_pkl_to_npz.sh
+bash scripts/convert_amass_smplx_to_npz.sh
+bash scripts/convert_to_mj.sh
+bash scripts/eval.sh
+bash scripts/replay_viser.sh
+```
+
+PARC/G1 pipeline:
+
+```bash
+bash scripts/parc/run_parc_process.sh
+bash scripts/parc/convert_parc_to_mj.sh
+bash scripts/parc/batch_parc_initial_aug_to_mj.sh
+bash scripts/parc/retry_failed_parc_to_mj.sh
+bash scripts/parc/vis_parc_process.sh
 ```
 
 ## Direct Python Entrypoints
@@ -159,16 +170,7 @@ uv run python src/omniretarget/evaluation/eval_retargeting.py \
 
 ```bash
 uv sync
-bash scripts/test_smoke.sh
-```
-
-During refactor work, this reduced test command avoids the two known external prerequisites:
-
-```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run python -m pytest -q \
-  --ignore=tests/test_prep_amass_smplx_gender_handling.py \
-  --ignore=tests/test_adam_pro_cli_smoke.py \
-  tests
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 ```
 
 Known external prerequisites:

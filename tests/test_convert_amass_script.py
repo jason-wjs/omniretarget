@@ -4,7 +4,7 @@ from tests.path_helpers import REPO_ROOT
 
 
 def test_convert_amass_script_sets_human_body_prior_pythonpath() -> None:
-    script = REPO_ROOT / "scripts" / "retargeting" / "convert_amass_smplx_to_npz.sh"
+    script = REPO_ROOT / "scripts" / "convert_amass_smplx_to_npz.sh"
 
     assert script.is_file()
     content = script.read_text(encoding="utf-8")

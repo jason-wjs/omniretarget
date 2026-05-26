@@ -4,7 +4,7 @@ from tests.path_helpers import REPO_ROOT
 
 
 def test_optitrack_converter_script_exists_with_expected_defaults() -> None:
-    script = REPO_ROOT / "scripts" / "retargeting" / "convert_optitrack_pkl_to_npz.sh"
+    script = REPO_ROOT / "scripts" / "convert_optitrack_pkl_to_npz.sh"
 
     assert script.is_file()
     content = script.read_text(encoding="utf-8")
