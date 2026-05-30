@@ -636,10 +636,6 @@ def determine_output_path(
     raise ValueError(f"Unknown task type: {task_type}")
 
 
-def _skip_height_normalization(task_type: TaskType, data_format: str) -> bool:
-    return task_type == "climbing" and data_format == "parc_humanoid"
-
-
 # ----------------------------- Main -----------------------------
 
 
@@ -721,17 +717,13 @@ def main(cfg: RetargetingConfig) -> None:
             ground_height_percentile=ground_height_percentile,
         )
     elif task_type in {"object_interaction", "climbing"}:
-        if _skip_height_normalization(task_type, data_format):
-            human_joints = human_joints * smpl_scale
-            object_moving_frame_idx = 0
-        else:
-            human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
-                human_joints,
-                retargeter,
-                toe_names,
-                scale=smpl_scale,
-                object_poses=object_poses,
-            )
+        human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
+            human_joints,
+            retargeter,
+            toe_names,
+            scale=smpl_scale,
+            object_poses=object_poses,
+        )
 
     # Initialize robot pose
     q_init, q_nominal, object_poses_augmented, human_joints, object_poses = initialize_robot_pose(

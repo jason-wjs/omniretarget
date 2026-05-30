@@ -574,6 +574,8 @@ class InteractionMeshRetargeter:
         # Non-penetration constraints
         Js, phis = self._update_jacobians_and_phis_from_q(q)
         for key, phi in phis.items():
+            if not self._should_enforce_non_penetration_pair(key):
+                continue
             Ja_n_full = Js[key]
             Ja_n = Ja_n_full[self.q_a_indices]
             rhs = -phi - self.penetration_tolerance
@@ -638,6 +640,23 @@ class InteractionMeshRetargeter:
         q_star[3:7] /= np.linalg.norm(q_star[3:7]) + 1e-12
 
         return q_star, cost
+
+    def _should_enforce_non_penetration_pair(self, pair_key: tuple[int, int]) -> bool:
+        """Keep ground constraints always on and gate object constraints by config."""
+        if self.activate_obj_non_penetration or self.object_name == "ground":
+            return True
+
+        if not hasattr(self, "_geom_names"):
+            return True
+
+        geom_a, geom_b = pair_key
+        geom_a_name = self._geom_names[geom_a]
+        geom_b_name = self._geom_names[geom_b]
+        involves_ground = ("ground" in geom_a_name) or ("ground" in geom_b_name)
+        if involves_ground:
+            return True
+
+        return not ((self.object_name in geom_a_name) or (self.object_name in geom_b_name))
 
     def iterate(
         self,

@@ -13,7 +13,6 @@ from omniretarget.config_types.data_type import PARC_HUMANOID_DEMO_JOINTS, Motio
 from omniretarget.examples.parc_process import build_arg_parser
 from omniretarget.examples.robot_retarget import (
     _compute_q_init_base,
-    _skip_height_normalization,
     load_motion_data,
     validate_config,
 )
@@ -23,6 +22,7 @@ from omniretarget.parc_process.source_fk import build_source_joint_positions
 from omniretarget.parc_process.source_io import load_parc_sample
 from omniretarget.parc_process.terrain_scene import export_parc_scene
 from omniretarget.parc_process.workspace import build_parc_workspace
+from omniretarget.src.interaction_mesh_retargeter import InteractionMeshRetargeter
 from omniretarget.src.utils import transform_from_human_to_world
 
 
@@ -155,6 +155,7 @@ def test_parc_humanoid_format_is_registered_for_g1() -> None:
     assert "pelvis" in cfg.resolved_demo_joints
     assert cfg.resolved_joints_mapping["left_foot"] == "left_ankle_intermediate_1_link"
     assert cfg.toe_names == ["left_foot", "right_foot"]
+    assert cfg.default_human_height == pytest.approx(1.70)
 
 
 def test_load_parc_sample_reads_pickled_payload(synthetic_parc_paths: tuple[Path, Path]) -> None:
@@ -231,12 +232,6 @@ def test_parc_workspace_normalizes_negative_terrain_with_human_joints(tmp_path: 
     assert human_joints[:, :, 2].min() > 0.0
     assert manifest["source"]["z_origin"] == pytest.approx(-1.2)
     assert manifest["collision"]["base_z"] == pytest.approx(-0.25)
-
-
-def test_parc_humanoid_climbing_skips_generic_foot_height_normalization() -> None:
-    assert _skip_height_normalization("climbing", "parc_humanoid")
-    assert not _skip_height_normalization("climbing", "mocap")
-    assert not _skip_height_normalization("object_interaction", "parc_humanoid")
 
 
 def test_export_parc_scene_writes_obj_and_xml(
@@ -332,6 +327,17 @@ def test_compute_q_init_base_supports_parc_humanoid_climbing() -> None:
 
     assert q_init.shape == (36,)
     np.testing.assert_allclose(q_init[:3], human_joints[0, PARC_HUMANOID_DEMO_JOINTS.index("torso")])
+
+
+def test_non_penetration_gates_object_pairs_when_object_constraints_disabled() -> None:
+    retargeter = SimpleNamespace(
+        activate_obj_non_penetration=False,
+        object_name="multi_boxes",
+        _geom_names=["multi_boxes_collision", "left_foot_collision", "ground"],
+    )
+
+    assert not InteractionMeshRetargeter._should_enforce_non_penetration_pair(retargeter, (0, 1))
+    assert InteractionMeshRetargeter._should_enforce_non_penetration_pair(retargeter, (1, 2))
 
 
 def test_transform_from_human_to_world_handles_zero_object_offset() -> None:
