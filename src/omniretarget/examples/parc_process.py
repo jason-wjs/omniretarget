@@ -22,7 +22,7 @@ from omniretarget.parc_process.output_writer import (  # noqa: E402
     PairedOutputResult,
     write_paired_output,
 )
-from omniretarget.parc_process.source_io import load_parc_sample  # noqa: E402
+from omniretarget.parc_process.source_io import ParcSample, load_parc_sample  # noqa: E402
 from omniretarget.parc_process.workspace import (  # noqa: E402
     ParcWorkspace,
     build_parc_workspace,
@@ -115,6 +115,16 @@ def _retarget_output_path(retarget_dir: Path, task_name: str) -> Path:
     return retarget_dir / f"{task_name}_original.npz"
 
 
+def _workspace_terrain_payload(workspace: ParcWorkspace, source_sample: ParcSample) -> dict[str, Any]:
+    terrain_hf = np.load(workspace.terrain_hf_path)
+    return {
+        "hf": terrain_hf,
+        "hf_maxmin": np.array([float(np.max(terrain_hf)), float(np.min(terrain_hf))], dtype=np.float32),
+        "min_point": source_sample.terrain_data.min_point,
+        "dx": source_sample.terrain_data.dx,
+    }
+
+
 def _build_retarget_config(
     *,
     workspace_root: Path,
@@ -180,6 +190,7 @@ def compile_sample(
 
     retarget_npz = _retarget_output_path(retarget_dir, task_name)
     qpos = np.load(retarget_npz)["qpos"]
+    normalized_terrain_payload = _workspace_terrain_payload(workspace, source_sample)
     paired_output = write_paired_output(
         qpos=qpos,
         source_sample=source_sample,
@@ -187,6 +198,11 @@ def compile_sample(
         motion_name=f"{task_name}_{robot_type}",
         scale_factor=_default_scale_factor(robot_type),
         workspace_path=workspace.task_dir,
+        terrain_collision_path=workspace.terrain_collision_path,
+        terrain_hf_path=workspace.terrain_hf_path,
+        terrain_visual_path=workspace.obj_path,
+        terrain_payload_override=normalized_terrain_payload,
+        z_origin=workspace.z_origin,
         retarget_config={
             "robot": robot_type,
             "task_type": "climbing",

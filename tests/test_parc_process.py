@@ -280,6 +280,42 @@ def test_write_paired_output_emits_manifest_and_motion(
     assert "name: sample_g1" in result.manifest_file.read_text()
 
 
+def test_write_paired_output_can_emit_normalized_terrain_payload(
+    tmp_path: Path,
+    synthetic_parc_paths: tuple[Path, Path],
+) -> None:
+    sample_path, _ = synthetic_parc_paths
+    sample = load_parc_sample(sample_path)
+    qpos = np.zeros((4, 36), dtype=np.float32)
+    qpos[:, 2] = 0.78
+    qpos[:, 3] = 1.0
+    normalized_hf = np.array([[0.0, 0.5], [0.75, 1.0]], dtype=np.float32)
+
+    result = write_paired_output(
+        qpos=qpos,
+        source_sample=sample,
+        output_root=tmp_path,
+        motion_name="sample_g1",
+        scale_factor=0.91,
+        workspace_path=tmp_path / "workspace",
+        terrain_collision_path=tmp_path / "workspace" / "terrain_collision.json",
+        terrain_hf_path=tmp_path / "workspace" / "terrain_hf.npy",
+        terrain_visual_path=tmp_path / "workspace" / "multi_boxes.obj",
+        terrain_payload_override={
+            "hf": normalized_hf,
+            "hf_maxmin": np.array([1.0, 0.0], dtype=np.float32),
+            "min_point": sample.terrain_data.min_point,
+            "dx": sample.terrain_data.dx,
+        },
+        z_origin=-1.2,
+        retarget_config={"robot": "g1", "task_type": "climbing"},
+    )
+
+    motion_data = result.load_motion_file()
+    np.testing.assert_allclose(motion_data.terrain_data.hf, normalized_hf)
+    assert motion_data.misc_data["parc_process:z_origin"] == pytest.approx(-1.2)
+
+
 def test_compute_q_init_base_supports_parc_humanoid_climbing() -> None:
     human_joints = np.zeros((1, len(PARC_HUMANOID_DEMO_JOINTS), 3), dtype=np.float64)
     human_joints[0, PARC_HUMANOID_DEMO_JOINTS.index("pelvis")] = np.array([0.0, 0.0, 0.95])
