@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import pickle
 from pathlib import Path
@@ -77,6 +78,35 @@ def _write_parc_sample(path: Path, *, frames: int = 4) -> Path:
     terrain_payload = {
         "hf": np.array([[0.0, 0.1], [0.2, 0.3]], dtype=np.float32),
         "hf_maxmin": np.array([0.3, 0.0], dtype=np.float32),
+        "min_point": np.array([-0.5, -0.5, 0.0], dtype=np.float32),
+        "dx": 0.25,
+    }
+    container = {
+        "motion_data": pickle.dumps(motion_payload),
+        "terrain_data": pickle.dumps(terrain_payload),
+        "misc_data": pickle.dumps({"hf_mask_inds": [0, 1]}),
+    }
+    with path.open("wb") as f:
+        pickle.dump(container, f)
+    return path
+
+
+def _write_negative_terrain_parc_sample(path: Path, *, frames: int = 4) -> Path:
+    root_pos = np.zeros((frames, 3), dtype=np.float32)
+    root_pos[:, 2] = np.linspace(-0.7, 0.2, frames, dtype=np.float32)
+    root_rot = np.tile(np.array([[0.0, 0.0, 0.0, 1.0]], dtype=np.float32), (frames, 1))
+    joint_rot = np.tile(np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32), (frames, len(BODY_NAMES) - 1, 1))
+    motion_payload = {
+        "root_pos": root_pos,
+        "root_rot": root_rot,
+        "joint_rot": joint_rot,
+        "body_contacts": np.zeros((frames, 2), dtype=np.float32),
+        "fps": 30,
+        "loop_mode": "wrap",
+    }
+    terrain_payload = {
+        "hf": np.array([[-1.2, -1.2], [-0.6, 0.0]], dtype=np.float32),
+        "hf_maxmin": np.array([0.0, -1.2], dtype=np.float32),
         "min_point": np.array([-0.5, -0.5, 0.0], dtype=np.float32),
         "dx": 0.25,
     }
@@ -172,6 +202,30 @@ def test_parc_workspace_is_accepted_by_climbing_loader(
     assert human_joints.shape == (4, 15, 3)
     assert object_poses.shape == (4, 7)
     assert smpl_scale > 0.0
+
+
+def test_parc_workspace_normalizes_negative_terrain_with_human_joints(tmp_path: Path) -> None:
+    sample_path = _write_negative_terrain_parc_sample(tmp_path / "negative.pkl")
+    xml_path = _write_humanoid_xml(tmp_path / "humanoid.xml")
+    sample = load_parc_sample(sample_path)
+
+    workspace = build_parc_workspace(
+        sample=sample,
+        source_xml=xml_path,
+        output_dir=tmp_path / "workspace",
+        task_name="negative",
+    )
+
+    human_joints = np.load(workspace.joints_file)
+    terrain_hf = np.load(workspace.terrain_hf_path)
+    manifest = json.loads(workspace.terrain_collision_path.read_text(encoding="utf-8"))
+
+    assert workspace.z_origin == pytest.approx(-1.2)
+    assert terrain_hf.min() == pytest.approx(0.0)
+    assert terrain_hf.max() == pytest.approx(1.2)
+    assert human_joints[:, :, 2].min() > 0.0
+    assert manifest["source"]["z_origin"] == pytest.approx(-1.2)
+    assert manifest["collision"]["base_z"] == pytest.approx(-0.25)
 
 
 def test_export_parc_scene_writes_obj_and_xml(
