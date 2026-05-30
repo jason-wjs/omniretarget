@@ -307,7 +307,10 @@ def test_write_paired_output_can_emit_normalized_terrain_payload(
     )
 
     motion_data = result.load_motion_file()
-    np.testing.assert_allclose(motion_data.terrain_data.hf, normalized_hf)
+    np.testing.assert_allclose(motion_data.terrain_data.hf, normalized_hf * 0.91)
+    np.testing.assert_allclose(motion_data.terrain_data.hf_maxmin, np.array([0.91, 0.0], dtype=np.float32))
+    np.testing.assert_allclose(motion_data.terrain_data.min_point, sample.terrain_data.min_point * 0.91)
+    assert motion_data.terrain_data.dx == pytest.approx(sample.terrain_data.dx * 0.91)
     assert motion_data.misc_data["parc_process:z_origin"] == pytest.approx(-1.2)
 
 

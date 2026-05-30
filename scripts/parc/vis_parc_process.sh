@@ -9,7 +9,16 @@ cd "${REPO_ROOT}/src/omniretarget"
 RETARGET_SAVE_DIR="${RETARGET_SAVE_DIR:-/tmp/parc_process_workspace}"
 PARC_TASK="${PARC_TASK:-beyond_dash_vault_001_aug001_dm}"
 ROBOT_URDF="${ROBOT_URDF:-models/g1/g1_29dof_spherehand.urdf}"
-OBJECT_URDF="${OBJECT_URDF:-${RETARGET_SAVE_DIR}/workspace/${PARC_TASK}/multi_boxes.urdf}"
+if [[ -z "${OBJECT_URDF:-}" ]]; then
+  shopt -s nullglob
+  scaled_object_urdfs=("${RETARGET_SAVE_DIR}/workspace/${PARC_TASK}"/multi_boxes_scaled_*.urdf)
+  shopt -u nullglob
+  if (( ${#scaled_object_urdfs[@]} > 0 )); then
+    OBJECT_URDF="${scaled_object_urdfs[0]}"
+  else
+    OBJECT_URDF="${RETARGET_SAVE_DIR}/workspace/${PARC_TASK}/multi_boxes.urdf"
+  fi
+fi
 QPOS_NPZ="${QPOS_NPZ:-${RETARGET_SAVE_DIR}/retargeted/${PARC_TASK}_original.npz}"
 
 ## platform_001

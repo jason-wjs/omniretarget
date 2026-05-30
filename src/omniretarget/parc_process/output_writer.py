@@ -61,19 +61,29 @@ def _joint_angles_to_quats_xyzw(joint_angles: np.ndarray, axes: np.ndarray) -> n
 def _terrain_payload(
     source_sample: ParcSample,
     terrain_payload_override: Mapping[str, Any] | None = None,
+    scale_factor: float = 1.0,
 ) -> dict[str, Any]:
     if terrain_payload_override is not None:
-        return {
+        payload = {
             "hf": np.asarray(terrain_payload_override["hf"]),
             "hf_maxmin": np.asarray(terrain_payload_override["hf_maxmin"]),
             "min_point": np.asarray(terrain_payload_override["min_point"]),
             "dx": float(terrain_payload_override["dx"]),
         }
+    else:
+        payload = {
+            "hf": np.asarray(source_sample.terrain_data.hf),
+            "hf_maxmin": np.asarray(source_sample.terrain_data.hf_maxmin),
+            "min_point": np.asarray(source_sample.terrain_data.min_point),
+            "dx": float(source_sample.terrain_data.dx),
+        }
+
+    scale = float(scale_factor)
     return {
-        "hf": np.asarray(source_sample.terrain_data.hf),
-        "hf_maxmin": np.asarray(source_sample.terrain_data.hf_maxmin),
-        "min_point": np.asarray(source_sample.terrain_data.min_point),
-        "dx": float(source_sample.terrain_data.dx),
+        "hf": payload["hf"] * scale,
+        "hf_maxmin": payload["hf_maxmin"] * scale,
+        "min_point": payload["min_point"] * scale,
+        "dx": payload["dx"] * scale,
     }
 
 
@@ -117,6 +127,7 @@ def _misc_payload(
     misc_data["motion_name"] = motion_name
     misc_data["parc_process:source_sample"] = str(source_sample.path)
     misc_data["parc_process:scale_factor"] = float(scale_factor)
+    misc_data["parc_process:terrain_payload_scale_factor"] = float(scale_factor)
     misc_data["parc_process:z_origin"] = float(z_origin)
     misc_data["parc_process:z_origin_rule"] = "terrain_data.hf nanmin"
     if workspace_path is not None:
@@ -201,7 +212,11 @@ def write_paired_output(
 
     _write_ms_container(
         motion_payload=_motion_payload(qpos, source_sample),
-        terrain_payload=_terrain_payload(source_sample, terrain_payload_override=terrain_payload_override),
+        terrain_payload=_terrain_payload(
+            source_sample,
+            terrain_payload_override=terrain_payload_override,
+            scale_factor=scale_factor,
+        ),
         misc_payload=_misc_payload(
             source_sample=source_sample,
             motion_name=motion_name,
