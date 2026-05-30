@@ -71,7 +71,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def iter_parc_samples(source_root: Path, limit: int | None = None) -> list[Path]:
     root = source_root.expanduser().resolve()
-    samples = sorted(path.resolve() for path in root.rglob("*.pkl") if path.is_file())
+    samples = sorted(path for path in root.rglob("*.pkl") if path.is_file())
     if limit is not None:
         samples = samples[:limit]
     return samples
@@ -79,9 +79,15 @@ def iter_parc_samples(source_root: Path, limit: int | None = None) -> list[Path]
 
 def build_sample_plan(*, source_root: Path, sample_path: Path, output_root: Path) -> ParcBatchSamplePlan:
     root = source_root.expanduser().resolve()
-    sample = sample_path.expanduser().resolve()
+    layout_sample = sample_path.expanduser()
+    if not layout_sample.is_absolute():
+        layout_sample = (Path.cwd() / layout_sample).resolve(strict=False)
+    sample = layout_sample.resolve()
     out = output_root.expanduser().resolve()
-    relative_path = sample.relative_to(root)
+    try:
+        relative_path = layout_sample.relative_to(root)
+    except ValueError:
+        relative_path = sample.relative_to(root)
     relative_dir = relative_path.parent
     stem = sample.stem
 

@@ -30,6 +30,22 @@ def test_batch_sample_plan_preserves_initial_aug_relative_layout(tmp_path: Path)
     assert plan.mj_motion_file == output_root / "mj" / "jumping" / "flipped" / "run_jump_gap" / "motion.npz"
 
 
+def test_batch_sample_plan_supports_symlinked_canary_sources(tmp_path: Path) -> None:
+    raw_sample = _touch(tmp_path / "raw" / "mid_climbing" / "mid_blocks_001.pkl")
+    source_root = tmp_path / "canary"
+    symlink_sample = source_root / "mid_climbing" / raw_sample.name
+    symlink_sample.parent.mkdir(parents=True, exist_ok=True)
+    symlink_sample.symlink_to(raw_sample)
+
+    samples = batch.iter_parc_samples(source_root)
+    plan = batch.build_sample_plan(source_root=source_root, sample_path=samples[0], output_root=tmp_path / "out")
+
+    assert samples == [symlink_sample]
+    assert plan.sample_path == raw_sample.resolve()
+    assert plan.relative_dir == Path("mid_climbing")
+    assert plan.mj_motion_file == tmp_path / "out" / "mj" / "mid_climbing" / "mid_blocks_001" / "motion.npz"
+
+
 def test_run_batch_processes_samples_through_parc_and_mj_conversion(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
