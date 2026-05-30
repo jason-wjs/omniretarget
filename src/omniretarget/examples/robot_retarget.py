@@ -297,11 +297,15 @@ def load_motion_data(
 
     elif task_type == "climbing":
         task_dir = data_path / task_name
-        npy_files = list(task_dir.glob("*.npy"))
-        if not npy_files:
-            raise FileNotFoundError(f"No .npy file found in {task_dir}")
+        human_joints_file = task_dir / "human_joints.npy"
+        if human_joints_file.exists():
+            npy_file = human_joints_file
+        else:
+            npy_files = sorted(path for path in task_dir.glob("*.npy") if path.name != "terrain_hf.npy")
+            if not npy_files:
+                raise FileNotFoundError(f"No human joints .npy file found in {task_dir}")
+            npy_file = npy_files[0]
 
-        npy_file = npy_files[0]
         human_joints = np.load(str(npy_file))
         if data_format == "mocap":
             human_joints = human_joints[::4]
@@ -632,6 +636,10 @@ def determine_output_path(
     raise ValueError(f"Unknown task type: {task_type}")
 
 
+def _skip_height_normalization(task_type: TaskType, data_format: str) -> bool:
+    return task_type == "climbing" and data_format == "parc_humanoid"
+
+
 # ----------------------------- Main -----------------------------
 
 
@@ -713,13 +721,17 @@ def main(cfg: RetargetingConfig) -> None:
             ground_height_percentile=ground_height_percentile,
         )
     elif task_type in {"object_interaction", "climbing"}:
-        human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
-            human_joints,
-            retargeter,
-            toe_names,
-            scale=smpl_scale,
-            object_poses=object_poses,
-        )
+        if _skip_height_normalization(task_type, data_format):
+            human_joints = human_joints * smpl_scale
+            object_moving_frame_idx = 0
+        else:
+            human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
+                human_joints,
+                retargeter,
+                toe_names,
+                scale=smpl_scale,
+                object_poses=object_poses,
+            )
 
     # Initialize robot pose
     q_init, q_nominal, object_poses_augmented, human_joints, object_poses = initialize_robot_pose(

@@ -11,7 +11,12 @@ import pytest
 
 from omniretarget.config_types.data_type import PARC_HUMANOID_DEMO_JOINTS, MotionDataConfig
 from omniretarget.examples.parc_process import build_arg_parser
-from omniretarget.examples.robot_retarget import _compute_q_init_base, load_motion_data, validate_config
+from omniretarget.examples.robot_retarget import (
+    _compute_q_init_base,
+    _skip_height_normalization,
+    load_motion_data,
+    validate_config,
+)
 from omniretarget.config_types.retargeting import RetargetingConfig
 from omniretarget.parc_process.output_writer import write_paired_output
 from omniretarget.parc_process.source_fk import build_source_joint_positions
@@ -226,6 +231,12 @@ def test_parc_workspace_normalizes_negative_terrain_with_human_joints(tmp_path: 
     assert human_joints[:, :, 2].min() > 0.0
     assert manifest["source"]["z_origin"] == pytest.approx(-1.2)
     assert manifest["collision"]["base_z"] == pytest.approx(-0.25)
+
+
+def test_parc_humanoid_climbing_skips_generic_foot_height_normalization() -> None:
+    assert _skip_height_normalization("climbing", "parc_humanoid")
+    assert not _skip_height_normalization("climbing", "mocap")
+    assert not _skip_height_normalization("object_interaction", "parc_humanoid")
 
 
 def test_export_parc_scene_writes_obj_and_xml(
