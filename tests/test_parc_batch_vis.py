@@ -4,12 +4,20 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from omniretarget.examples.parc_batch_vis import _load_qpos, build_arg_parser, config_from_args
+from omniretarget.examples.parc_batch_vis import (
+    ParcBatchVisConfig,
+    ParcBatchViserPlayer,
+    _load_qpos,
+    build_arg_parser,
+    config_from_args,
+)
 from omniretarget.parc_process.batch_vis import (
+    ParcVisSample,
     append_review_record,
     default_review_file,
     discover_playlist,
@@ -305,15 +313,121 @@ def test_load_qpos_rejects_invalid_shapes(tmp_path: Path, qpos: np.ndarray, mess
         _load_qpos(npz_path)
 
 
+@pytest.mark.parametrize(
+    ("qpos", "message"),
+    [
+        (np.array([["bad", "qpos", "data", "is", "not", "numeric", ""]]), "numeric"),
+        (np.array([["bad", "qpos", "data", "is", "not", "numeric", ""]], dtype=object), "pickle|numeric"),
+    ],
+)
+def test_load_qpos_rejects_non_numeric_qpos(tmp_path: Path, qpos: np.ndarray, message: str) -> None:
+    npz_path = tmp_path / "non_numeric_qpos.npz"
+    np.savez(npz_path, qpos=qpos, fps=np.array(30))
+
+    with pytest.raises(ValueError, match=message):
+        _load_qpos(npz_path)
+
+
+@pytest.mark.parametrize("bad_value", [np.nan, np.inf])
+def test_load_qpos_rejects_nonfinite_values(tmp_path: Path, bad_value: float) -> None:
+    npz_path = tmp_path / "nonfinite_qpos.npz"
+    qpos = np.zeros((1, 7))
+    qpos[0, 3] = 1.0
+    qpos[0, 0] = bad_value
+    np.savez(npz_path, qpos=qpos, fps=np.array(30))
+
+    with pytest.raises(ValueError, match="finite"):
+        _load_qpos(npz_path)
+
+
+def test_load_qpos_rejects_zero_norm_base_quaternion(tmp_path: Path) -> None:
+    npz_path = tmp_path / "zero_quat_qpos.npz"
+    qpos = np.zeros((1, 7))
+    np.savez(npz_path, qpos=qpos, fps=np.array(30))
+
+    with pytest.raises(ValueError, match="quaternion"):
+        _load_qpos(npz_path)
+
+
 def test_load_qpos_returns_valid_qpos_and_fps(tmp_path: Path) -> None:
     npz_path = tmp_path / "valid_qpos.npz"
     qpos = np.zeros((2, 7))
+    qpos[:, 3] = 1.0
     np.savez(npz_path, qpos=qpos, fps=np.array(60))
 
     loaded_qpos, fps = _load_qpos(npz_path)
 
     np.testing.assert_array_equal(loaded_qpos, qpos)
     assert fps == 60
+
+
+class _RecordingLock:
+    def __init__(self) -> None:
+        self.depth = 0
+
+    def __enter__(self) -> "_RecordingLock":
+        self.depth += 1
+        return self
+
+    def __exit__(self, _exc_type: object, _exc: object, _traceback: object) -> None:
+        self.depth -= 1
+
+    @property
+    def held(self) -> bool:
+        return self.depth > 0
+
+
+class _LockAwareNoteHandle:
+    def __init__(self, value: str, lock: _RecordingLock) -> None:
+        self._value = value
+        self.lock = lock
+        self.read_with_lock: bool | None = None
+
+    @property
+    def value(self) -> str:
+        self.read_with_lock = self.lock.held
+        return self._value
+
+    @value.setter
+    def value(self, value: str) -> None:
+        self._value = value
+
+
+def test_record_review_reads_note_while_locked_without_viser(tmp_path: Path) -> None:
+    sample = ParcVisSample(
+        task="a_task",
+        index=0,
+        qpos_npz=(tmp_path / "a_task_original.npz").resolve(),
+        object_urdf=None,
+    )
+    config = ParcBatchVisConfig(
+        output_root=tmp_path,
+        dataset="mid_climbing",
+        task_list=None,
+        review_file=tmp_path / "review.jsonl",
+        robot_urdf=tmp_path / "robot.urdf",
+        loop=True,
+        start_task=None,
+        fps=None,
+        grid_width=1.0,
+        grid_height=1.0,
+        visual_fps_multiplier=1,
+        show_meshes=True,
+    )
+    player = ParcBatchViserPlayer(config, [sample])
+    lock = _RecordingLock()
+    note_input = _LockAwareNoteHandle("locked snapshot", lock)
+    player._lock = lock  # type: ignore[assignment]
+    player.note_input = note_input
+    player.error_md = SimpleNamespace(content="")
+    player.status_md = SimpleNamespace(content="")
+    player.path_md = SimpleNamespace(content="")
+
+    player._record_review("pass")
+
+    assert note_input.read_with_lock is True
+    latest = load_latest_reviews(config.review_file)
+    assert latest["a_task"].note == "locked snapshot"
 
 
 def test_parc_batch_vis_cli_defaults_review_file(tmp_path: Path) -> None:

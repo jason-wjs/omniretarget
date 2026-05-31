@@ -80,10 +80,16 @@ def config_from_args(args: argparse.Namespace) -> ParcBatchVisConfig:
 
 
 def _load_qpos(npz_path: Path) -> tuple[np.ndarray, int]:
-    data = np.load(npz_path, allow_pickle=True)
-    qpos = data["qpos"]
+    with np.load(npz_path, allow_pickle=False) as data:
+        try:
+            qpos = data["qpos"].copy()
+        except ValueError as exc:
+            raise ValueError(f"qpos must be loadable without pickle: {npz_path}") from exc
+        fps = int(data["fps"]) if "fps" in data else 30
     if not isinstance(qpos, np.ndarray):
         raise ValueError(f"qpos must be a numpy array: {npz_path}")
+    if not np.issubdtype(qpos.dtype, np.number) or np.issubdtype(qpos.dtype, np.complexfloating):
+        raise ValueError(f"qpos must be numeric: {npz_path} has dtype {qpos.dtype}")
     if qpos.ndim != 2:
         raise ValueError(f"qpos must be 2D with shape (frames, columns): {npz_path} has shape {qpos.shape}")
     if qpos.shape[0] <= 0:
@@ -93,7 +99,11 @@ def _load_qpos(npz_path: Path) -> tuple[np.ndarray, int]:
             f"qpos must contain at least 7 columns for base position and quaternion: "
             f"{npz_path} has shape {qpos.shape}"
         )
-    fps = int(data["fps"]) if "fps" in data else 30
+    if not np.all(np.isfinite(qpos)):
+        raise ValueError(f"qpos must contain only finite values: {npz_path}")
+    quat_norms = np.linalg.norm(qpos[:, 3:7], axis=1)
+    if not np.all(np.isfinite(quat_norms)) or np.any(quat_norms <= 0.0):
+        raise ValueError(f"qpos base quaternions must have nonzero finite norm: {npz_path}")
     return qpos, fps
 
 
@@ -215,26 +225,35 @@ class ParcBatchViserPlayer:
 
         @self.sample_dropdown.on_update
         def _(_evt: Any) -> None:
-            if self._programmatic_sample_update:
-                return
-            task = str(self.sample_dropdown.value)
-            self._load_sample(next(i for i, sample in enumerate(self.samples) if sample.task == task))
+            with self._lock:
+                if self._programmatic_sample_update:
+                    return
+                task = str(self.sample_dropdown.value)
+                index = next(i for i, sample in enumerate(self.samples) if sample.task == task)
+            self._load_sample(index)
 
         @prev_btn.on_click
         def _(_evt: Any) -> None:
-            self._load_sample((self.current_index - 1) % len(self.samples))
+            with self._lock:
+                index = (self.current_index - 1) % len(self.samples)
+            self._load_sample(index)
 
         @next_btn.on_click
         def _(_evt: Any) -> None:
-            self._load_sample((self.current_index + 1) % len(self.samples))
+            with self._lock:
+                index = (self.current_index + 1) % len(self.samples)
+            self._load_sample(index)
 
         @next_unreviewed_btn.on_click
         def _(_evt: Any) -> None:
+            with self._lock:
+                current_index = self.current_index
             try:
                 latest = load_latest_reviews(self.config.review_file)
-                next_index = first_unreviewed_index(self.samples, latest, self.current_index)
+                next_index = first_unreviewed_index(self.samples, latest, current_index)
             except Exception as exc:
-                self.error_md.content = f"Review read error: `{type(exc).__name__}: {exc}`"
+                with self._lock:
+                    self.error_md.content = f"Review read error: `{type(exc).__name__}: {exc}`"
                 return
             self._load_sample(next_index)
 
@@ -246,10 +265,12 @@ class ParcBatchViserPlayer:
 
         @self.show_meshes_cb.on_update
         def _(_evt: Any) -> None:
-            if self.robot_urdf is not None:
-                self.robot_urdf.show_visual = bool(self.show_meshes_cb.value)
-            if self.object_urdf is not None:
-                self.object_urdf.show_visual = bool(self.show_meshes_cb.value)
+            with self._lock:
+                show_visual = bool(self.show_meshes_cb.value)
+                if self.robot_urdf is not None:
+                    self.robot_urdf.show_visual = show_visual
+                if self.object_urdf is not None:
+                    self.object_urdf.show_visual = show_visual
 
         for button, status in (
             (pass_btn, "pass"),
@@ -276,9 +297,9 @@ class ParcBatchViserPlayer:
 
         @self.frame_slider.on_update
         def _(_evt: Any) -> None:
-            if self._programmatic_slider_update:
-                return
             with self._lock:
+                if self._programmatic_slider_update:
+                    return
                 self.playing = False
                 self.frame_f = float(self.frame_slider.value)
                 self.prev_robot_q = None
@@ -344,7 +365,15 @@ class ParcBatchViserPlayer:
                 self.frame_slider.value = 0
             finally:
                 self._programmatic_slider_update = False
-            self._draw_frame(0)
+            try:
+                self._draw_frame(0)
+            except Exception as exc:
+                self._remove_loaded_urdfs()
+                self.qpos = None
+                self.error_md.content = f"Load error: `{type(exc).__name__}: {exc}`"
+                self._replace_frame_slider(n_frames=1)
+                self._refresh_review_ui()
+                return
             self._refresh_review_ui()
 
     def _draw_frame(self, frame_index: int) -> None:
@@ -398,31 +427,36 @@ class ParcBatchViserPlayer:
             time.sleep(sleep_s)
 
     def _record_review(self, status: str) -> None:
-        sample = self.samples[self.current_index]
+        with self._lock:
+            sample = self.samples[self.current_index]
+            note = str(self.note_input.value)
+            review_file = self.config.review_file
         try:
-            append_review_record(self.config.review_file, sample, status=status, note=str(self.note_input.value))
+            append_review_record(review_file, sample, status=status, note=note)
         except Exception as exc:
-            self.error_md.content = f"Review write error: `{type(exc).__name__}: {exc}`"
+            with self._lock:
+                self.error_md.content = f"Review write error: `{type(exc).__name__}: {exc}`"
             return
         self._refresh_review_ui()
 
     def _refresh_review_ui(self) -> None:
-        sample = self.samples[self.current_index]
-        try:
-            latest = load_latest_reviews(self.config.review_file)
-        except Exception as exc:
-            self.error_md.content = f"Review read error: `{type(exc).__name__}: {exc}`"
-            latest = {}
-        record = latest.get(sample.task)
-        self.status_md.content = (
-            f"Sample `{self.current_index + 1} / {len(self.samples)}`: `{sample.task}`  \n"
-            f"Review: `{record.status if record else 'unreviewed'}`"
-        )
-        self.path_md.content = (
-            f"QPOS: `{sample.qpos_npz}`  \n"
-            f"Terrain: `{sample.object_urdf if sample.object_urdf is not None else 'missing'}`"
-        )
-        self.note_input.value = record.note if record is not None else ""
+        with self._lock:
+            sample = self.samples[self.current_index]
+            try:
+                latest = load_latest_reviews(self.config.review_file)
+            except Exception as exc:
+                self.error_md.content = f"Review read error: `{type(exc).__name__}: {exc}`"
+                latest = {}
+            record = latest.get(sample.task)
+            self.status_md.content = (
+                f"Sample `{self.current_index + 1} / {len(self.samples)}`: `{sample.task}`  \n"
+                f"Review: `{record.status if record else 'unreviewed'}`"
+            )
+            self.path_md.content = (
+                f"QPOS: `{sample.qpos_npz}`  \n"
+                f"Terrain: `{sample.object_urdf if sample.object_urdf is not None else 'missing'}`"
+            )
+            self.note_input.value = record.note if record is not None else ""
 
     def _remove_loaded_urdfs(self) -> None:
         if self.robot_urdf is not None:
