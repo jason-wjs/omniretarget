@@ -16,8 +16,8 @@ from omniretarget.retargeting.motion_source import load_motion_data
 from omniretarget.retargeting.object_setup import setup_object_data
 from omniretarget.retargeting.pipeline import DEFAULT_DATA_FORMATS, build_retargeter_kwargs_from_config
 from omniretarget.retargeting.preprocessing import build_foot_sticking_sequences, preprocess_retargeting_motion
+from omniretarget.retargeter import InteractionMeshRetargeter
 from omniretarget.runtime.context import build_runtime_context
-from omniretarget.src.interaction_mesh_retargeter import InteractionMeshRetargeter
 
 PARALLEL_SAVE_DIRS = {
     "robot_only": "demo_results_parallel/{robot}/robot_only/omomo",

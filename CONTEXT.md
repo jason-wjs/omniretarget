@@ -45,6 +45,12 @@ collision candidates, geometry distances, and qpos layout decisions.
 The frame-by-frame optimization workflow that builds interaction meshes,
 Laplacian targets, constraints, and CVXPY problems to solve robot trajectories.
 
+**Retargeter Facade**
+The public import seam for constructing the interaction-mesh retargeter. Internal
+callers should prefer `omniretarget.retargeter.InteractionMeshRetargeter`; the
+legacy `omniretarget.src.interaction_mesh_retargeter` path remains a compatibility
+wrapper for existing users.
+
 **CLI Adapter**
 A thin executable entry point that parses command-line configuration and calls a
 deeper module. CLI adapters should not own retargeting, runtime-context, solver,

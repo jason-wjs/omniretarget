@@ -9,9 +9,9 @@ from omniretarget.config_types.data_type import MotionDataConfig
 from omniretarget.config_types.robot import RobotConfig
 from omniretarget.config_types.task import TaskConfig
 from omniretarget.runtime.context import build_runtime_context
+from omniretarget.retargeter import InteractionMeshRetargeter
 from omniretarget.solver.constraints import select_bilateral_foot_keys
 from omniretarget.solver.interaction_mesh import build_interaction_mesh_frame
-from omniretarget.src.interaction_mesh_retargeter import InteractionMeshRetargeter
 
 
 def _robot_only_constants():

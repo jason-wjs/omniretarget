@@ -17,9 +17,9 @@ from omniretarget.retargeting.motion_source import load_motion_data
 from omniretarget.retargeting.object_setup import setup_object_data
 from omniretarget.retargeting.preprocessing import build_foot_sticking_sequences, preprocess_retargeting_motion
 from omniretarget.retargeting.results import determine_output_path
+from omniretarget.retargeter import InteractionMeshRetargeter
 from omniretarget.runtime.context import build_runtime_context
 from omniretarget.runtime.validation import validate_retargeting_config
-from omniretarget.src.interaction_mesh_retargeter import InteractionMeshRetargeter
 
 logger = logging.getLogger(__name__)
 

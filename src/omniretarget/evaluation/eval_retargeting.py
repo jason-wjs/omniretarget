@@ -25,6 +25,7 @@ from omniretarget.config_types.data_type import (  # noqa: E402
     MotionDataConfig,
 )
 from omniretarget.config_types.robot import RobotConfig  # noqa: E402
+from omniretarget.mujoco.assets import world_mesh_from_geom  # noqa: E402
 from omniretarget.mujoco.collision import (  # noqa: E402
     geom_distance,
     geom_ids_containing,
@@ -37,7 +38,6 @@ from omniretarget.mujoco.collision import (  # noqa: E402
 from omniretarget.mujoco.kinematics import body_id, link_positions  # noqa: E402
 from omniretarget.mujoco.model_state import load_model_state  # noqa: E402
 from omniretarget.runtime.context import build_evaluation_runtime_context  # noqa: E402
-from omniretarget.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
 from omniretarget.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
     calculate_scale_factor,
     create_new_scene_xml_file,
@@ -148,7 +148,7 @@ class RetargetingEvaluator:
             name = geometry_name(m, gid)
             if self.object_name not in name:
                 continue
-            Vw, F = _world_mesh_from_geom(m, d, gid, name)  # your helper
+            Vw, F = world_mesh_from_geom(m, d, gid, name)
             if Vw is None or F is None or Vw.size == 0 or F.size == 0:
                 continue
             obj_Vs.append(Vw.astype(np.float64))

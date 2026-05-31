@@ -6,7 +6,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from omniretarget.mujoco.assets import resolve_robot_xml_path
+from omniretarget.mujoco.assets import resolve_robot_xml_path, world_mesh_from_geom
 from omniretarget.mujoco.collision import (
     geom_pair_allowed_for_object_or_ground,
     should_enforce_non_penetration_pair,
@@ -27,6 +27,44 @@ def test_resolve_robot_xml_path_matches_legacy_object_rules() -> None:
     assert resolve_robot_xml_path(str(G1_URDF), "multi_boxes", scene_xml_file="workspace/scene.xml") == (
         "workspace/scene.xml"
     )
+
+
+def test_world_mesh_from_geom_transforms_mesh_vertices_to_world_frame() -> None:
+    model = SimpleNamespace(
+        geom_dataid=np.array([0]),
+        mesh_vertadr=np.array([0]),
+        mesh_vertnum=np.array([3]),
+        mesh_faceadr=np.array([0]),
+        mesh_facenum=np.array([1]),
+        mesh_vert=np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ],
+            dtype=np.float64,
+        ),
+        mesh_face=np.array([[0, 1, 2]], dtype=np.int32),
+    )
+    data = SimpleNamespace(
+        geom_xmat=np.array([np.eye(3, dtype=np.float64).reshape(-1)]),
+        geom_xpos=np.array([[1.0, 2.0, 3.0]], dtype=np.float64),
+    )
+
+    vertices, faces = world_mesh_from_geom(model, data, 0, "triangle")
+
+    np.testing.assert_allclose(
+        vertices,
+        np.array(
+            [
+                [1.0, 2.0, 3.0],
+                [2.0, 2.0, 3.0],
+                [1.0, 3.0, 3.0],
+            ],
+            dtype=np.float64,
+        ),
+    )
+    np.testing.assert_array_equal(faces, np.array([[0, 1, 2]], dtype=np.int32))
 
 
 def test_detects_dynamic_object_qpos_layout_from_model_size() -> None:

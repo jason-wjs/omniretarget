@@ -33,6 +33,10 @@ branch:
   paths unless that behavior change is explicitly reviewed.
 - Treat PARC height origin and batch visualization as high-risk compatibility
   areas because they are recently added main-branch behavior.
+- Keep `omniretarget.src.*` imports and `src/omniretarget/viser_player.py` as
+  compatibility paths unless a later reviewed phase proves external users no
+  longer need them. Internal callers should prefer the deeper seams when they
+  exist, such as `omniretarget.retargeter` and `omniretarget.mujoco.*`.
 
 ## Runtime Context Parity Fields
 

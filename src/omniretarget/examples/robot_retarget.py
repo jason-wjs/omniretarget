@@ -31,11 +31,9 @@ from omniretarget.retargeting.object_setup import setup_object_data as _setup_ob
 from omniretarget.retargeting.pipeline import build_retargeter_kwargs_from_config as _build_retargeter_kwargs  # noqa: E402
 from omniretarget.retargeting.pipeline import run_single_retargeting  # noqa: E402
 from omniretarget.retargeting.results import determine_output_path as _determine_output_path  # noqa: E402
+from omniretarget.retargeter import InteractionMeshRetargeter  # noqa: E402
 from omniretarget.runtime.context import build_runtime_context  # noqa: E402
 from omniretarget.runtime.validation import validate_retargeting_config  # noqa: E402
-from omniretarget.src.interaction_mesh_retargeter import (  # noqa: E402
-    InteractionMeshRetargeter,  # type: ignore[import-not-found]
-)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

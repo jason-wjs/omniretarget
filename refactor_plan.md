@@ -791,23 +791,23 @@ and `cost`.
 
 **Phase tasks:**
 
-- [ ] Search for old compatibility wrapper usages.
+- [x] Search for old compatibility wrapper usages.
 
 ```bash
 rg "create_task_constants|omniretarget\\.src|examples\\.robot_retarget|examples\\.parallel_robot_retarget" src tests docs scripts
 ```
 
-- [ ] Keep public import wrappers where external users may rely on them.
+- [x] Keep public import wrappers where external users may rely on them.
 
-- [ ] Remove only internal wrappers that have no callers.
+- [x] Remove only internal wrappers that have no callers.
 
-- [ ] Update README commands only if paths remain identical or wrappers are explicitly documented.
+- [x] Update README commands only if paths remain identical or wrappers are explicitly documented.
 
-- [ ] Update `docs/add-robot-type.md` and `docs/add-motion-format.md` if Phase 3 changed extension paths.
+- [x] Update `docs/add-robot-type.md` and `docs/add-motion-format.md` if Phase 3 changed extension paths.
 
-- [ ] Update `CONTEXT.md` with any refined terms discovered during implementation.
+- [x] Update `CONTEXT.md` with any refined terms discovered during implementation.
 
-- [ ] Update `docs/architecture-refactor-safety.md` if any safety gate changed during implementation.
+- [x] Update `docs/architecture-refactor-safety.md` if any safety gate changed during implementation.
 
 **Focused checks:**
 
@@ -828,6 +828,22 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
 - Wrapper removal breaks an entry point or documented import path.
 - Docs require users to change commands for no functional reason.
+
+**Implementation note:** Phase 6 introduces `omniretarget.retargeter` as the
+public retargeter facade, migrates internal retargeting callers to it, and moves
+world-frame MuJoCo mesh extraction to `omniretarget.mujoco.assets` while keeping
+`omniretarget.src.mujoco_utils` as a compatibility wrapper. No old wrapper had
+zero callers and enough safety evidence to remove outright. No README command
+changes are required because protected CLI paths remain unchanged. Deliberate
+layout deviations from the target tree remain documented for compatibility:
+`omniretarget.src.utils`, `omniretarget.src.viser_utils`, and
+`src/omniretarget/viser_player.py` are still public or workflow-facing paths and
+are not safe to remove in this phase.
+
+**Verification note:** Phase 6 focused gate
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_public_facades.py tests/test_mujoco_query_seam.py tests/test_module_entrypoints.py tests/test_repo_doc_boundaries.py tests/test_parc_process.py -q`
+passed with 58 passed, 1 skipped. Full suite `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest`
+passed with 195 passed, 1 skipped, and `git diff --check` reported no issues.
 
 ---
 

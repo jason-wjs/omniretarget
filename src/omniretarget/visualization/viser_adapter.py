@@ -8,7 +8,7 @@ import viser  # type: ignore[import-not-found]
 import yourdfpy  # type: ignore[import-untyped]
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
-from omniretarget.src.mujoco_utils import _world_mesh_from_geom
+from omniretarget.mujoco.assets import world_mesh_from_geom
 from omniretarget.src.viser_utils import create_motion_control_sliders
 
 
@@ -77,7 +77,7 @@ def draw_mesh_from_geom(retargeter, model, data, geom_id, geom_name, name="/mesh
     """Draw a single MuJoCo mesh geom in Viser."""
     if not hasattr(retargeter, "server"):
         return
-    vertices, faces = _world_mesh_from_geom(model, data, geom_id, geom_name)
+    vertices, faces = world_mesh_from_geom(model, data, geom_id, geom_name)
     retargeter.server.scene.add_mesh_simple(
         name,
         vertices=vertices.astype(np.float32),
