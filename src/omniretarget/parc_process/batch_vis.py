@@ -29,15 +29,15 @@ class ReviewRecord:
 
 
 def retargeted_dir(output_root: Path, dataset: str) -> Path:
-    return Path(output_root) / "parc_process" / "workspace" / dataset / "retargeted"
+    return _normalize_path(output_root) / "parc_process" / "workspace" / dataset / "retargeted"
 
 
 def workspace_dir(output_root: Path, dataset: str) -> Path:
-    return Path(output_root) / "parc_process" / "workspace" / dataset / "workspace"
+    return _normalize_path(output_root) / "parc_process" / "workspace" / dataset / "workspace"
 
 
 def default_review_file(output_root: Path, dataset: str) -> Path:
-    return Path(output_root) / "vis_review" / f"{dataset}_review.jsonl"
+    return _normalize_path(output_root) / "vis_review" / f"{dataset}_review.jsonl"
 
 
 def task_from_retargeted_npz(path: Path) -> str:
@@ -49,7 +49,7 @@ def task_from_retargeted_npz(path: Path) -> str:
 
 def read_task_list(path: Path) -> list[str]:
     tasks: list[str] = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in _normalize_path(path).read_text(encoding="utf-8").splitlines():
         task = line.strip()
         if not task or task.startswith("#"):
             continue
@@ -70,6 +70,7 @@ def resolve_object_urdf(output_root: Path, dataset: str, task: str) -> Path | No
 
 
 def discover_playlist(output_root: Path, dataset: str, task_list: Path | None = None) -> list[ParcVisSample]:
+    output_root = _normalize_path(output_root)
     retargeted = retargeted_dir(output_root, dataset)
     if not retargeted.is_dir():
         raise FileNotFoundError(f"Retargeted directory not found: {retargeted}")
@@ -85,6 +86,8 @@ def discover_playlist(output_root: Path, dataset: str, task_list: Path | None = 
         tasks = sorted(qpos_by_task)
     else:
         tasks = read_task_list(task_list)
+        if not tasks:
+            raise ValueError(f"No tasks remain after reading task list: {_normalize_path(task_list)}")
         missing = [task for task in tasks if task not in qpos_by_task]
         if missing:
             raise FileNotFoundError(f"Tasks missing from retargeted directory {retargeted}: {', '.join(missing)}")
@@ -110,6 +113,10 @@ def append_review_record(
 ) -> ReviewRecord:
     if status not in VALID_REVIEW_STATUSES:
         raise ValueError(f"invalid review status {status!r}; expected one of {sorted(VALID_REVIEW_STATUSES)}")
+    if not isinstance(note, str):
+        raise ValueError("note must be a string")
+    if timestamp is not None and not isinstance(timestamp, str):
+        raise ValueError("timestamp must be a string")
     if timestamp is None:
         timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
 
@@ -117,8 +124,8 @@ def append_review_record(
         task=sample.task,
         status=status,
         note=note,
-        qpos_npz=sample.qpos_npz,
-        object_urdf=sample.object_urdf,
+        qpos_npz=_normalize_path(sample.qpos_npz),
+        object_urdf=_normalize_path(sample.object_urdf) if sample.object_urdf is not None else None,
         timestamp=timestamp,
     )
 
@@ -130,7 +137,7 @@ def append_review_record(
         "object_urdf": str(record.object_urdf) if record.object_urdf is not None else None,
         "timestamp": record.timestamp,
     }
-    review_file = Path(review_file)
+    review_file = _normalize_path(review_file)
     review_file.parent.mkdir(parents=True, exist_ok=True)
     with review_file.open("a", encoding="utf-8") as f:
         f.write(json.dumps(payload, sort_keys=True) + "\n")
@@ -138,7 +145,7 @@ def append_review_record(
 
 
 def load_latest_reviews(review_file: Path) -> dict[str, ReviewRecord]:
-    review_file = Path(review_file)
+    review_file = _normalize_path(review_file)
     if not review_file.exists():
         return {}
 
@@ -181,12 +188,14 @@ def _review_record_from_payload(payload: object) -> ReviewRecord:
         raise ValueError(f"invalid review status {status!r}; expected one of {sorted(VALID_REVIEW_STATUSES)}")
 
     object_urdf = payload["object_urdf"]
+    if object_urdf is not None and not isinstance(object_urdf, str):
+        raise ValueError("object_urdf must be a string or null")
     return ReviewRecord(
         task=_require_str(payload["task"], "task"),
         status=_require_str(status, "status"),
         note=_require_str(payload["note"], "note"),
-        qpos_npz=Path(_require_str(payload["qpos_npz"], "qpos_npz")),
-        object_urdf=Path(object_urdf) if object_urdf is not None else None,
+        qpos_npz=_normalize_path(_require_str(payload["qpos_npz"], "qpos_npz")),
+        object_urdf=_normalize_path(object_urdf) if object_urdf is not None else None,
         timestamp=_require_str(payload["timestamp"], "timestamp"),
     )
 
@@ -195,3 +204,7 @@ def _require_str(value: object, field: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
     return value
+
+
+def _normalize_path(path: str | Path) -> Path:
+    return Path(path).expanduser().resolve()
