@@ -109,6 +109,38 @@ class NoInsertPath(list[str]):
             "omniretarget.mujoco.collision",
             ["omniretarget.mujoco.collision"],
         ),
+        (
+            "omniretarget.solver",
+            ["omniretarget.solver"],
+        ),
+        (
+            "omniretarget.solver.interaction_mesh",
+            ["omniretarget.solver.interaction_mesh"],
+        ),
+        (
+            "omniretarget.solver.frame_problem",
+            ["omniretarget.solver.frame_problem"],
+        ),
+        (
+            "omniretarget.solver.constraints",
+            ["omniretarget.solver.constraints"],
+        ),
+        (
+            "omniretarget.solver.optimizer",
+            ["omniretarget.solver.optimizer"],
+        ),
+        (
+            "omniretarget.solver.trajectory",
+            ["omniretarget.solver.trajectory"],
+        ),
+        (
+            "omniretarget.visualization",
+            ["omniretarget.visualization"],
+        ),
+        (
+            "omniretarget.visualization.viser_adapter",
+            ["omniretarget.visualization.viser_adapter"],
+        ),
     ],
 )
 def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: str, reset_modules: list[str]) -> None:

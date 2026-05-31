@@ -699,23 +699,23 @@ from omniretarget.src.interaction_mesh_retargeter import InteractionMeshRetarget
 
 **Phase tasks:**
 
-- [ ] Add facade tests for `InteractionMeshRetargeter` public constructor and public methods currently used by workflows.
+- [x] Add facade tests for `InteractionMeshRetargeter` public constructor and public methods currently used by workflows.
 
-- [ ] Extract visualization-only code into `visualization/viser_adapter.py`.
+- [x] Extract visualization-only code into `visualization/viser_adapter.py`.
 
-- [ ] Keep visualization behavior behind the existing `visualize` and `debug` flags.
+- [x] Keep visualization behavior behind the existing `visualize` and `debug` flags.
 
-- [ ] Extract interaction mesh and Laplacian target construction into `solver/interaction_mesh.py`.
+- [x] Extract interaction mesh and Laplacian target construction into `solver/interaction_mesh.py`.
 
-- [ ] Extract per-frame optimization input and output types into `solver/frame_problem.py`.
+- [x] Extract per-frame optimization input and output types into `solver/frame_problem.py`.
 
-- [ ] Extract foot sticking, foot lock, non-penetration, self-collision, joint-limit, trust-region, nominal-tracking, and smoothness construction into `solver/constraints.py` only after query behavior is already behind Phase 4 modules.
+- [x] Extract foot sticking, foot lock, non-penetration, self-collision, joint-limit, trust-region, nominal-tracking, and smoothness construction into `solver/constraints.py` only after query behavior is already behind Phase 4 modules.
 
-- [ ] Extract CVXPY/Clarabel invocation into `solver/optimizer.py`.
+- [x] Extract CVXPY/Clarabel invocation into `solver/optimizer.py`.
 
-- [ ] Extract the frame-by-frame loop into `solver/trajectory.py`.
+- [x] Extract the frame-by-frame loop into `solver/trajectory.py`.
 
-- [ ] Keep `InteractionMeshRetargeter.retarget_motion()` as the facade method until all CLI and PARC workflows are verified.
+- [x] Keep `InteractionMeshRetargeter.retarget_motion()` as the facade method until all CLI and PARC workflows are verified.
 
 **Focused checks:**
 
@@ -766,6 +766,16 @@ cost
 - Decomposition requires changing solver math.
 - Visualization extraction changes replay behavior.
 - Retargeting outputs lose required fields.
+
+**Verification note:** Phase 5 adds solver facade tests and reduces
+`src/omniretarget/src/interaction_mesh_retargeter.py` to 525 lines. Focused gate:
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_solver_facade.py tests/test_parc_process.py tests/test_adam_pro_object_interaction_mapping.py tests/test_foot_sticking_contact_keys.py tests/test_module_entrypoints.py -q`
+passed with 54 passed, 1 skipped. Full suite
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest` passed with 192 passed, 1 skipped, and `git diff --check`
+reported no issues. The full `dance1_subject1` LAFAN demo has 3945 frames and was stopped after proving it
+was not a short smoke input; a truncated 12-frame copy was then used for the same CLI smoke, which produced
+`/tmp/omniretarget_solver_smoke_phase5_short/dance1_subject1.npz` with fields `qpos`, `human_joints`, `fps`,
+and `cost`.
 
 ---
 
