@@ -297,11 +297,15 @@ def load_motion_data(
 
     elif task_type == "climbing":
         task_dir = data_path / task_name
-        npy_files = list(task_dir.glob("*.npy"))
-        if not npy_files:
-            raise FileNotFoundError(f"No .npy file found in {task_dir}")
+        human_joints_file = task_dir / "human_joints.npy"
+        if human_joints_file.exists():
+            npy_file = human_joints_file
+        else:
+            npy_files = sorted(path for path in task_dir.glob("*.npy") if path.name != "terrain_hf.npy")
+            if not npy_files:
+                raise FileNotFoundError(f"No human joints .npy file found in {task_dir}")
+            npy_file = npy_files[0]
 
-        npy_file = npy_files[0]
         human_joints = np.load(str(npy_file))
         if data_format == "mocap":
             human_joints = human_joints[::4]
@@ -719,6 +723,7 @@ def main(cfg: RetargetingConfig) -> None:
             toe_names,
             scale=smpl_scale,
             object_poses=object_poses,
+            normalize_height=not (task_type == "climbing" and data_format == "parc_humanoid"),
         )
 
     # Initialize robot pose

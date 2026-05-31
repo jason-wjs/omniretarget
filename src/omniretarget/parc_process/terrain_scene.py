@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -14,6 +16,8 @@ class ParcSceneAssets:
     asset_xml_path: Path
     scene_xml_path: Path
     urdf_path: Path
+    terrain_hf_path: Path
+    terrain_collision_path: Path
 
 
 def _package_root() -> Path:
@@ -72,14 +76,19 @@ def _heightfield_to_obj_mesh(
     return vertices, faces
 
 
+def _terrain_base_z(hf: np.ndarray, dx: float) -> float:
+    return float(np.nanmin(hf)) - max(float(dx), 0.1)
+
+
 def _write_obj(
     hf: np.ndarray,
     min_x: float,
     min_y: float,
     dx: float,
     output_path: Path,
+    *,
+    base_z: float,
 ) -> Path:
-    base_z = float(np.min(hf)) - max(float(dx), 0.1)
     vertices, faces = _heightfield_to_obj_mesh(hf, min_x, min_y, dx, base_z=base_z)
     with output_path.open("w") as f:
         for x, y, z in vertices:
@@ -148,11 +157,65 @@ def _write_object_urdf(obj_path: Path, urdf_path: Path, object_name: str) -> Pat
     return urdf_path
 
 
+def _write_terrain_hf(terrain_data: ParcTerrainData, terrain_hf_path: Path) -> Path:
+    np.save(terrain_hf_path, np.asarray(terrain_data.hf, dtype=np.float32))
+    return terrain_hf_path
+
+
+def _write_terrain_collision_manifest(
+    *,
+    terrain_data: ParcTerrainData,
+    terrain_hf_path: Path,
+    obj_path: Path,
+    terrain_collision_path: Path,
+    object_name: str,
+    base_z: float,
+    xy_scale: float,
+    height_scale: float,
+    scale_source: Mapping[str, Any] | None,
+) -> Path:
+    scale_source_payload = dict(scale_source or {})
+    min_point = np.asarray(terrain_data.min_point, dtype=np.float64).reshape(-1)
+    payload = {
+        "schema_version": 1,
+        "terrain_name": object_name,
+        "frame": {
+            "convention": "z_up",
+            "origin": "motion_world",
+        },
+        "collision": {
+            "type": "heightfield",
+            "hf_file": terrain_hf_path.name,
+            "min_point": min_point[:2].tolist(),
+            "dx": float(terrain_data.dx),
+            "base_z": float(base_z) * float(height_scale),
+            "xy_scale": float(xy_scale),
+            "height_scale": float(height_scale),
+        },
+        "visual": {
+            "file": obj_path.name,
+            "role": "visual_only",
+        },
+        "source": {
+            "format": "PARC",
+            "fields": ["terrain_data.hf", "terrain_data.min_point", "terrain_data.dx"],
+            "scale_source": scale_source_payload,
+            "z_origin": float(scale_source_payload.get("z_origin", 0.0)),
+            "z_origin_rule": str(scale_source_payload.get("z_origin_rule", "none")),
+        },
+    }
+    terrain_collision_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return terrain_collision_path
+
+
 def export_parc_scene(
     terrain_data: ParcTerrainData,
     output_dir: str | Path,
     *,
     object_name: str = "multi_boxes",
+    xy_scale: float = 1.0,
+    height_scale: float = 1.0,
+    scale_source: Mapping[str, Any] | None = None,
 ) -> ParcSceneAssets:
     out_dir = Path(output_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -161,15 +224,39 @@ def export_parc_scene(
     asset_xml_path = out_dir / "box_assets.xml"
     scene_xml_path = out_dir / "g1_29dof_w_multi_boxes.xml"
     urdf_path = out_dir / f"{object_name}.urdf"
+    terrain_hf_path = out_dir / "terrain_hf.npy"
+    terrain_collision_path = out_dir / "terrain_collision.json"
 
-    _write_obj(terrain_data.hf, float(terrain_data.min_point[0]), float(terrain_data.min_point[1]), float(terrain_data.dx), obj_path)
+    base_z = _terrain_base_z(terrain_data.hf, float(terrain_data.dx))
+    _write_terrain_hf(terrain_data, terrain_hf_path)
+    _write_obj(
+        terrain_data.hf,
+        float(terrain_data.min_point[0]),
+        float(terrain_data.min_point[1]),
+        float(terrain_data.dx),
+        obj_path,
+        base_z=base_z,
+    )
     _write_asset_xml(obj_path, asset_xml_path, object_name)
     _write_scene_xml(_g1_scene_template(), asset_xml_path, scene_xml_path, object_name)
     _write_object_urdf(obj_path, urdf_path, object_name)
+    _write_terrain_collision_manifest(
+        terrain_data=terrain_data,
+        terrain_hf_path=terrain_hf_path,
+        obj_path=obj_path,
+        terrain_collision_path=terrain_collision_path,
+        object_name=object_name,
+        base_z=base_z,
+        xy_scale=xy_scale,
+        height_scale=height_scale,
+        scale_source=scale_source,
+    )
 
     return ParcSceneAssets(
         obj_path=obj_path,
         asset_xml_path=asset_xml_path,
         scene_xml_path=scene_xml_path,
         urdf_path=urdf_path,
+        terrain_hf_path=terrain_hf_path,
+        terrain_collision_path=terrain_collision_path,
     )

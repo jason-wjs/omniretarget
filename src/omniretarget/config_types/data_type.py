@@ -465,7 +465,7 @@ DATA_FORMAT_CONSTANTS: dict[str, FormatConstants] = {
         "default_human_height": 1.7,
     },
     "parc_humanoid": {
-        "default_human_height": 1.78,
+        "default_human_height": 1.70,
     },
 }
 
