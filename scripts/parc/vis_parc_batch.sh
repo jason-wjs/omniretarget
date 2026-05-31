@@ -4,11 +4,11 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 REPO_ROOT=$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)
 
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}/src/omniretarget"
 
 OUTPUT_ROOT="${OUTPUT_ROOT:-/home/humanoid/Downloads/Data/parc_initial_aug_g1_v2_height_fixed_mid_climbing_full_20260531}"
 PARC_DATASET="${PARC_DATASET:-mid_climbing}"
-ROBOT_URDF="${ROBOT_URDF:-src/omniretarget/models/g1/g1_29dof_spherehand.urdf}"
+ROBOT_URDF="${ROBOT_URDF:-models/g1/g1_29dof_spherehand.urdf}"
 
 args=(
   python -m omniretarget.examples.parc_batch_vis

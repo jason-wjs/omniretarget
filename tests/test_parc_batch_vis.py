@@ -556,6 +556,7 @@ def test_parc_batch_vis_cli_accepts_task_list_and_no_loop(tmp_path: Path) -> Non
 def test_vis_parc_batch_shell_forwards_env_and_args(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
     capture_file = tmp_path / "uv_args.txt"
+    cwd_capture_file = tmp_path / "uv_cwd.txt"
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     fake_uv = fake_bin / "uv"
@@ -563,6 +564,7 @@ def test_vis_parc_batch_shell_forwards_env_and_args(tmp_path: Path) -> None:
         "\n".join(
             [
                 "#!/usr/bin/env bash",
+                'pwd > "${CWD_CAPTURE_FILE}"',
                 'printf "%s\\n" "$@" > "${CAPTURE_FILE}"',
                 "",
             ]
@@ -576,6 +578,7 @@ def test_vis_parc_batch_shell_forwards_env_and_args(tmp_path: Path) -> None:
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
     env["CAPTURE_FILE"] = str(capture_file)
+    env["CWD_CAPTURE_FILE"] = str(cwd_capture_file)
     env["OUTPUT_ROOT"] = str(tmp_path / "out")
     env["PARC_DATASET"] = "mid_climbing"
     env["TASK_LIST"] = str(task_list)
@@ -590,6 +593,7 @@ def test_vis_parc_batch_shell_forwards_env_and_args(tmp_path: Path) -> None:
     )
 
     args = capture_file.read_text(encoding="utf-8").splitlines()
+    assert cwd_capture_file.read_text(encoding="utf-8").strip() == str(repo_root / "src" / "omniretarget")
     assert args[:3] == ["run", "python", "-m"]
     assert args[3] == "omniretarget.examples.parc_batch_vis"
     assert args[args.index("--output-root") + 1] == str(tmp_path / "out")
