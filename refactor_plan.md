@@ -514,6 +514,10 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_foot_sticking_contact_
 
 ## Phase 3: Robot and Motion Spec Registries
 
+**Status:** Complete.
+
+**Verification note:** Phase 3 adds 9 specs registry parity tests, so the full-suite count changes from `159 passed, 1 skipped` to `168 passed, 1 skipped`.
+
 **Goal:** Move robot and motion-format facts into deeper spec modules while keeping `config_types` as the public configuration interface.
 
 **Problem being solved:** `config_types/robot.py` and `config_types/data_type.py` mix CLI-facing dataclasses, validation, defaults, robot-specific profiles, motion-format joint names, and mapping registries.
@@ -537,12 +541,12 @@ Existing imports from these modules must continue to work:
 
 **Phase tasks:**
 
-- [ ] Add parity tests for every current `RobotConfig` robot type:
+- [x] Add parity tests for every current `RobotConfig` robot type:
   - `g1`
   - `t1`
   - `adam_pro`
 
-- [ ] Add parity tests for every current motion format:
+- [x] Add parity tests for every current motion format:
   - `lafan`
   - `smplh`
   - `smplx`
@@ -550,17 +554,17 @@ Existing imports from these modules must continue to work:
   - `optitrack`
   - `parc_humanoid`
 
-- [ ] Create `specs/robots.py` and move robot defaults and robot-specific profiles there.
+- [x] Create `specs/robots.py` and move robot defaults and robot-specific profiles there.
 
-- [ ] Keep `RobotConfig` properties in `config_types/robot.py` as the caller-facing interface.
+- [x] Keep `RobotConfig` properties in `config_types/robot.py` as the caller-facing interface.
 
-- [ ] Create `specs/motion_formats.py` and move demo joint lists, toe names, and format constants there.
+- [x] Create `specs/motion_formats.py` and move demo joint lists, toe names, and format constants there.
 
-- [ ] Create `specs/mappings.py` and move human-joint-to-robot-link mappings there.
+- [x] Create `specs/mappings.py` and move human-joint-to-robot-link mappings there.
 
-- [ ] Keep constants re-exported or otherwise available from `config_types/data_type.py` until all internal callers are migrated.
+- [x] Keep constants re-exported or otherwise available from `config_types/data_type.py` until all internal callers are migrated.
 
-- [ ] Update `docs/add-robot-type.md` and `docs/add-motion-format.md` to describe the new spec files.
+- [x] Update `docs/add-robot-type.md` and `docs/add-motion-format.md` to describe the new spec files.
 
 **Focused checks:**
 

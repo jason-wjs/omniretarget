@@ -30,9 +30,9 @@ uv run python src/omniretarget/data_utils/prep_amass_smplx_for_rt.py \
 ```
 Please follow the [AMASS](https://amass.is.tue.mpg.de/) instructions to download original data. And follow the [SMPL-X](https://smpl-x.is.tue.mpg.de/index.html) instructions to download SMPL-X models. For AMASS data, we tested on SMPL-X N format. The AMASS data structure should be `/path/to/amass/dataset_name/subject_name/*.npz`. For SMPL-X models, the structure should be `/path/to/models/smplx/SMPLX_NEUTRAL.npz`.
 
-### Step 2: Add Your Format to `src/omniretarget/config_types/data_type.py`
+### Step 2: Add Your Format to `src/omniretarget/specs/motion_formats.py`
 
-Edit **only this file** - all format configuration is centralized here!
+Edit the motion-format registry here. Joint mappings live in `src/omniretarget/specs/mappings.py`.
 
 #### 2.1: Define Joint Names
 
@@ -73,7 +73,7 @@ Add entries to these dictionaries.
 
 **Required:**
 - `TOE_NAMES_BY_FORMAT` - Must include toe joint names for foot-sticking constraint
-- `JOINTS_MAPPINGS` - Must include mappings for each robot type you support
+- `JOINTS_MAPPINGS` in `src/omniretarget/specs/mappings.py` - Must include mappings for each robot type you support
 
 **Toe names** (used for foot sticking constraint):
 ```python
@@ -102,7 +102,7 @@ JOINTS_MAPPINGS = {
 
 **Important**: If you processed your data to the `.npz` format in Step 1 (with `global_joint_positions` and `height` keys), you can **skip this step entirely**. The code automatically handles `.npz` files with this structure via a fallback mechanism.
 
-If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `src/omniretarget/examples/robot_retarget.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
+If your format needs special loading logic (different file extension, custom preprocessing, etc.), edit `src/omniretarget/retargeting/motion_source.py` in the `load_motion_data()` function. Add your format before the fallback `else` clause:
 
 ```python
 def load_motion_data(...):
@@ -127,13 +127,15 @@ def load_motion_data(...):
 
 ### Summary: What You Need to Edit
 
-**In `src/omniretarget/config_types/data_type.py`** (main configuration file):
+**In `src/omniretarget/specs/motion_formats.py`**:
 1. ✅ **Required**: Create `MYFORMAT_DEMO_JOINTS` constant
 2. ✅ **Required**: Add to `DEMO_JOINTS_REGISTRY`
 3. ✅ **Required**: Add to `TOE_NAMES_BY_FORMAT`
+
+**In `src/omniretarget/specs/mappings.py`**:
 4. ✅ **Required**: Add to `JOINTS_MAPPINGS`
 
-**In `src/omniretarget/examples/robot_retarget.py`** (only if needed):
+**In `src/omniretarget/retargeting/motion_source.py`** (only if needed):
 7. ⚠️ **Optional**: Add loading logic in `load_motion_data()` (only if format needs special handling beyond standard `.npz` format)
 
 
