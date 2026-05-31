@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -51,6 +52,9 @@ def build_parc_workspace(
     output_dir: str | Path,
     task_name: str,
     object_name: str = "multi_boxes",
+    xy_scale: float = 1.0,
+    height_scale: float = 1.0,
+    scale_source: Mapping[str, Any] | None = None,
 ) -> ParcWorkspace:
     root_dir = Path(output_dir).expanduser().resolve()
     task_dir = root_dir / task_name
@@ -69,7 +73,10 @@ def build_parc_workspace(
         normalized_terrain,
         task_dir,
         object_name=object_name,
+        xy_scale=xy_scale,
+        height_scale=height_scale,
         scale_source={
+            **dict(scale_source or {}),
             "z_origin": float(z_origin),
             "z_origin_rule": "terrain_data.hf nanmin",
         },

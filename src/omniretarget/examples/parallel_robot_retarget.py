@@ -238,7 +238,12 @@ def process_single_task(args):
             )
         elif task_type in {"object_interaction", "climbing"}:
             human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
-                human_joints, retargeter, toe_names, scale=smpl_scale, object_poses=object_poses
+                human_joints,
+                retargeter,
+                toe_names,
+                scale=smpl_scale,
+                object_poses=object_poses,
+                normalize_height=not (task_type == "climbing" and data_format == "parc_humanoid"),
             )
 
         # Extract foot sticking sequences

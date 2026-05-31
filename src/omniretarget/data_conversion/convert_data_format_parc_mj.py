@@ -22,9 +22,7 @@ except ImportError:  # pragma: no cover - viewer is optional in headless environ
     mjv = None
 
 
-DEFAULT_G1_XML_PATH = Path(
-    "/home/humanoid/Projects/Junsong_WU/learning/locomotion/controller/mjlab/src/mjlab/asset_zoo/robots/unitree_g1/xmls/g1.xml"
-)
+DEFAULT_G1_XML_PATH = Path(__file__).resolve().parents[1] / "models" / "g1" / "g1_mj.xml"
 
 PARC_G1_JOINT_NAMES = [
     "left_hip_pitch_joint",

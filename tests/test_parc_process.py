@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from omniretarget.config_types.data_type import PARC_HUMANOID_DEMO_JOINTS, MotionDataConfig
-from omniretarget.examples.parc_process import build_arg_parser
+from omniretarget.examples.parc_process import build_arg_parser, compile_sample
 from omniretarget.examples.robot_retarget import (
     _compute_q_init_base,
     load_motion_data,
@@ -246,6 +246,73 @@ def test_export_parc_scene_writes_obj_and_xml(
     assert scene.obj_path.exists()
     assert scene.asset_xml_path.exists()
     assert scene.scene_xml_path.exists()
+
+
+def test_export_parc_scene_writes_rl_compatible_heightfield_manifest(
+    tmp_path: Path,
+    synthetic_parc_paths: tuple[Path, Path],
+) -> None:
+    sample_path, _ = synthetic_parc_paths
+    sample = load_parc_sample(sample_path)
+
+    scene = export_parc_scene(
+        sample.terrain_data,
+        tmp_path,
+        object_name="multi_boxes",
+        xy_scale=0.5,
+        height_scale=0.5,
+        scale_source={"rule": "test scale"},
+    )
+
+    manifest = json.loads(scene.terrain_collision_path.read_text(encoding="utf-8"))
+    collision = manifest["collision"]
+
+    assert manifest["schema_version"] == 1
+    assert manifest["terrain_name"] == "multi_boxes"
+    assert manifest["frame"] == {"convention": "z_up", "origin": "motion_world"}
+    assert collision["type"] == "heightfield"
+    assert collision["hf_file"] == "terrain_hf.npy"
+    assert "heightfield_file" not in collision
+    assert collision["min_point"] == pytest.approx([-0.5, -0.5])
+    assert collision["dx"] == pytest.approx(0.25)
+    assert collision["xy_scale"] == pytest.approx(0.5)
+    assert collision["height_scale"] == pytest.approx(0.5)
+    assert collision["base_z"] == pytest.approx(-0.125)
+    assert manifest["visual"] == {"file": "multi_boxes.obj", "role": "visual_only"}
+    assert manifest["source"]["format"] == "PARC"
+    assert manifest["source"]["scale_source"]["rule"] == "test scale"
+
+
+def test_compile_sample_dry_run_writes_g1_scaled_heightfield_manifest(
+    tmp_path: Path,
+    synthetic_parc_paths: tuple[Path, Path],
+) -> None:
+    sample_path, source_xml = synthetic_parc_paths
+
+    result = compile_sample(
+        sample_path=sample_path,
+        source_xml=source_xml,
+        output_root=tmp_path / "paired",
+        retarget_save_dir=tmp_path / "workspace_root",
+        robot_type="g1",
+        activate_obj_non_penetration=False,
+        dry_run=True,
+    )
+
+    manifest = json.loads(result.workspace.terrain_collision_path.read_text(encoding="utf-8"))
+    collision = manifest["collision"]
+    scale = 1.32 / 1.7
+
+    assert collision["type"] == "heightfield"
+    assert collision["hf_file"] == "terrain_hf.npy"
+    assert collision["xy_scale"] == pytest.approx(scale)
+    assert collision["height_scale"] == pytest.approx(scale)
+    assert collision["dx"] == pytest.approx(0.25)
+    assert collision["base_z"] == pytest.approx(-0.25 * scale)
+    assert manifest["source"]["scale_source"]["robot_type"] == "g1"
+    assert manifest["source"]["scale_source"]["rule"] == (
+        "RobotConfig.ROBOT_HEIGHT / MotionDataConfig.default_human_height"
+    )
 
 
 def test_write_paired_output_emits_manifest_and_motion(

@@ -111,6 +111,25 @@ def _default_scale_factor(robot_type: str, data_format: str = "parc_humanoid") -
     return 1.0
 
 
+def _default_scale_source(robot_type: str, data_format: str = "parc_humanoid") -> dict[str, Any]:
+    robot_cfg = RobotConfig(robot_type=robot_type)
+    motion_cfg = MotionDataConfig(data_format=data_format, robot_type=robot_type)
+    payload: dict[str, Any] = {
+        "robot_type": robot_type,
+        "robot_height": float(robot_cfg.ROBOT_HEIGHT),
+        "data_format": data_format,
+    }
+    if motion_cfg.default_scale_factor is not None:
+        payload["default_scale_factor"] = float(motion_cfg.default_scale_factor)
+        payload["rule"] = "MotionDataConfig.default_scale_factor"
+    elif motion_cfg.default_human_height is not None:
+        payload["default_human_height"] = float(motion_cfg.default_human_height)
+        payload["rule"] = "RobotConfig.ROBOT_HEIGHT / MotionDataConfig.default_human_height"
+    else:
+        payload["rule"] = "identity"
+    return payload
+
+
 def _retarget_output_path(retarget_dir: Path, task_name: str) -> Path:
     return retarget_dir / f"{task_name}_original.npz"
 
@@ -162,11 +181,15 @@ def compile_sample(
 
     workspace_root = retarget_save_dir / "workspace"
     retarget_dir = retarget_save_dir / "retargeted"
+    scale_factor = _default_scale_factor(robot_type)
     workspace = build_parc_workspace(
         sample=source_sample,
         source_xml=source_xml,
         output_dir=workspace_root,
         task_name=task_name,
+        xy_scale=scale_factor,
+        height_scale=scale_factor,
+        scale_source=_default_scale_source(robot_type),
     )
 
     if dry_run:
@@ -196,7 +219,7 @@ def compile_sample(
         source_sample=source_sample,
         output_root=output_root,
         motion_name=f"{task_name}_{robot_type}",
-        scale_factor=_default_scale_factor(robot_type),
+        scale_factor=scale_factor,
         workspace_path=workspace.task_dir,
         terrain_collision_path=workspace.terrain_collision_path,
         terrain_hf_path=workspace.terrain_hf_path,

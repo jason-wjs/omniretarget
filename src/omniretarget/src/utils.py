@@ -214,6 +214,7 @@ def preprocess_motion_data(
     scale=0.714,
     mat_height=0.1,
     ground_height_percentile=0.0,
+    normalize_height=True,
     object_poses=None,
 ):
     """
@@ -224,30 +225,30 @@ def preprocess_motion_data(
         object_poses (np.ndarray): Object poses.
         retargeter: Retargeting object with smplh_joint2idx attribute.
         scale (float): Scaling factor.
-        normalize_height (bool): Whether to normalize human joint heights.
+        normalize_height (bool): Whether to normalize human joint heights from toe contacts.
 
     Returns:
         tuple: (human_joints_scaled, object_poses_scaled, object_moving_frame_idx).
     """
-    # Normalize human joint heights
-    toe_indices = [
-        retargeter.demo_joints.index(foot_names[0]),
-        retargeter.demo_joints.index(foot_names[1]),
-    ]
-    toe_heights = human_joints[:, toe_indices, 2].reshape(-1)
-    if ground_height_percentile > 0:
-        # Use "higher" to avoid interpolation pulling the floor down from sparse outliers.
-        try:
-            z_min = float(np.percentile(toe_heights, ground_height_percentile, method="higher"))
-        except TypeError:
-            z_min = float(np.percentile(toe_heights, ground_height_percentile, interpolation="higher"))
-    else:
-        z_min = float(toe_heights.min())
+    if normalize_height:
+        toe_indices = [
+            retargeter.demo_joints.index(foot_names[0]),
+            retargeter.demo_joints.index(foot_names[1]),
+        ]
+        toe_heights = human_joints[:, toe_indices, 2].reshape(-1)
+        if ground_height_percentile > 0:
+            # Use "higher" to avoid interpolation pulling the floor down from sparse outliers.
+            try:
+                z_min = float(np.percentile(toe_heights, ground_height_percentile, method="higher"))
+            except TypeError:
+                z_min = float(np.percentile(toe_heights, ground_height_percentile, interpolation="higher"))
+        else:
+            z_min = float(toe_heights.min())
 
-    if z_min >= mat_height:
-        # On a mat.
-        z_min -= mat_height
-    human_joints[:, :, 2] -= z_min
+        if z_min >= mat_height:
+            # On a mat.
+            z_min -= mat_height
+        human_joints[:, :, 2] -= z_min
 
     # Scale human joints
     human_joints = human_joints * scale

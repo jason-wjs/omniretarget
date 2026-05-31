@@ -723,6 +723,7 @@ def main(cfg: RetargetingConfig) -> None:
             toe_names,
             scale=smpl_scale,
             object_poses=object_poses,
+            normalize_height=not (task_type == "climbing" and data_format == "parc_humanoid"),
         )
 
     # Initialize robot pose

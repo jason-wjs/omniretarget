@@ -170,11 +170,32 @@ def _write_terrain_collision_manifest(
     terrain_collision_path: Path,
     object_name: str,
     base_z: float,
+    xy_scale: float,
+    height_scale: float,
     scale_source: Mapping[str, Any] | None,
 ) -> Path:
     scale_source_payload = dict(scale_source or {})
-    hf = np.asarray(terrain_data.hf, dtype=np.float64)
+    min_point = np.asarray(terrain_data.min_point, dtype=np.float64).reshape(-1)
     payload = {
+        "schema_version": 1,
+        "terrain_name": object_name,
+        "frame": {
+            "convention": "z_up",
+            "origin": "motion_world",
+        },
+        "collision": {
+            "type": "heightfield",
+            "hf_file": terrain_hf_path.name,
+            "min_point": min_point[:2].tolist(),
+            "dx": float(terrain_data.dx),
+            "base_z": float(base_z) * float(height_scale),
+            "xy_scale": float(xy_scale),
+            "height_scale": float(height_scale),
+        },
+        "visual": {
+            "file": obj_path.name,
+            "role": "visual_only",
+        },
         "source": {
             "format": "PARC",
             "fields": ["terrain_data.hf", "terrain_data.min_point", "terrain_data.dx"],
@@ -182,20 +203,8 @@ def _write_terrain_collision_manifest(
             "z_origin": float(scale_source_payload.get("z_origin", 0.0)),
             "z_origin_rule": str(scale_source_payload.get("z_origin_rule", "none")),
         },
-        "collision": {
-            "type": "heightfield_mesh",
-            "object_name": object_name,
-            "mesh_file": obj_path.name,
-            "heightfield_file": terrain_hf_path.name,
-            "base_z": float(base_z),
-            "dx": float(terrain_data.dx),
-            "min_point": np.asarray(terrain_data.min_point, dtype=np.float64).tolist(),
-            "shape": list(hf.shape),
-            "height_min": float(np.nanmin(hf)) if hf.size else 0.0,
-            "height_max": float(np.nanmax(hf)) if hf.size else 0.0,
-        },
     }
-    terrain_collision_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    terrain_collision_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return terrain_collision_path
 
 
@@ -204,6 +213,8 @@ def export_parc_scene(
     output_dir: str | Path,
     *,
     object_name: str = "multi_boxes",
+    xy_scale: float = 1.0,
+    height_scale: float = 1.0,
     scale_source: Mapping[str, Any] | None = None,
 ) -> ParcSceneAssets:
     out_dir = Path(output_dir).expanduser().resolve()
@@ -236,6 +247,8 @@ def export_parc_scene(
         terrain_collision_path=terrain_collision_path,
         object_name=object_name,
         base_z=base_z,
+        xy_scale=xy_scale,
+        height_scale=height_scale,
         scale_source=scale_source,
     )
 

@@ -51,6 +51,8 @@ def test_parc_mj_cli_defaults_to_workspace_g1_xml() -> None:
     )
 
     assert Path(args.robot_xml) == DEFAULT_G1_XML_PATH
+    assert DEFAULT_G1_XML_PATH.name == "g1_mj.xml"
+    assert DEFAULT_G1_XML_PATH.exists()
 
 
 def test_convert_parc_qpos_to_motion_file_emits_mjlab_fields(tmp_path: Path) -> None:

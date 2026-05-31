@@ -8,7 +8,7 @@ cd "${REPO_ROOT}/src/omniretarget"
 
 INPUT_FILE="${INPUT_FILE:-/tmp/parc_process_workspace/retargeted/platform_001_original.npz}"
 OUTPUT_NAME="${OUTPUT_NAME:-/tmp/tt_converted/platform_001/motion.npz}"
-ROBOT_XML="${ROBOT_XML:-/home/humanoid/Projects/Junsong_WU/learning/locomotion/controller/mjlab/src/mjlab/asset_zoo/robots/unitree_g1/xmls/g1.xml}"
+ROBOT_XML="${ROBOT_XML:-${REPO_ROOT}/src/omniretarget/models/g1/g1_mj.xml}"
 OUTPUT_FPS="${OUTPUT_FPS:-50}"
 
 uv run python -m omniretarget.data_conversion.convert_data_format_parc_mj \

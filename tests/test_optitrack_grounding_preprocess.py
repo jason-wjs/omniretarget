@@ -52,3 +52,21 @@ def test_preprocess_motion_data_percentile_grounding_rejects_toe_outlier() -> No
     # Robust grounding should align typical toe height to near-ground (0.0)
     # instead of lifting sequence by the noisy global minimum.
     assert np.isclose(processed[:, 1, 2].mean(), 0.0)
+
+
+def test_preprocess_motion_data_can_preserve_absolute_terrain_height() -> None:
+    retargeter = _DummyRetargeter()
+    human_joints = np.zeros((2, 3, 3), dtype=float)
+    human_joints[:, 0, 2] = [0.95, 1.10]
+    human_joints[:, 1, 2] = [0.97, 1.12]
+    human_joints[:, 2, 2] = [1.75, 1.90]
+
+    processed = preprocess_motion_data(
+        human_joints.copy(),
+        retargeter,
+        ["LeftToeBase", "RightToeBase"],
+        scale=0.5,
+        normalize_height=False,
+    )
+
+    np.testing.assert_allclose(processed[:, :, 2], human_joints[:, :, 2] * 0.5)
