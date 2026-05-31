@@ -195,8 +195,8 @@ class ParcBatchViserPlayer:
             self.error_md = self.server.gui.add_markdown("")
 
         self.playback_folder = self.server.gui.add_folder("Playback")
+        self._replace_frame_slider(n_frames=1)
         with self.playback_folder:
-            self._replace_frame_slider(n_frames=1)
             play_btn = self.server.gui.add_button("Play / Pause")
             self.fps_input = self.server.gui.add_number(
                 "FPS",
@@ -353,6 +353,8 @@ class ParcBatchViserPlayer:
                     self.object_root.wxyz = np.array([1.0, 0.0, 0.0, 0.0])
             except Exception as exc:
                 self._remove_loaded_urdfs()
+                self.qpos = None
+                self.robot_dof = 0
                 self.error_md.content = f"Load error: `{type(exc).__name__}: {exc}`"
                 self._replace_frame_slider(n_frames=1)
                 self._refresh_review_ui()
@@ -370,6 +372,7 @@ class ParcBatchViserPlayer:
             except Exception as exc:
                 self._remove_loaded_urdfs()
                 self.qpos = None
+                self.robot_dof = 0
                 self.error_md.content = f"Load error: `{type(exc).__name__}: {exc}`"
                 self._replace_frame_slider(n_frames=1)
                 self._refresh_review_ui()

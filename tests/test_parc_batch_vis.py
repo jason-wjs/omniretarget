@@ -393,14 +393,73 @@ class _LockAwareNoteHandle:
         self._value = value
 
 
-def test_record_review_reads_note_while_locked_without_viser(tmp_path: Path) -> None:
-    sample = ParcVisSample(
-        task="a_task",
-        index=0,
-        qpos_npz=(tmp_path / "a_task_original.npz").resolve(),
-        object_urdf=None,
-    )
-    config = ParcBatchVisConfig(
+class _FakeGuiHandle:
+    def __init__(self, value: object = None) -> None:
+        self.value = value
+        self.content = ""
+        self.removed = False
+
+    def on_update(self, callback: object) -> object:
+        return callback
+
+    def on_click(self, callback: object) -> object:
+        return callback
+
+    def remove(self) -> None:
+        self.removed = True
+
+
+class _NonReentrantFolder:
+    def __init__(self) -> None:
+        self.active = False
+
+    def __enter__(self) -> "_NonReentrantFolder":
+        if self.active:
+            raise AssertionError("folder context was re-entered")
+        self.active = True
+        return self
+
+    def __exit__(self, _exc_type: object, _exc: object, _traceback: object) -> None:
+        if not self.active:
+            raise AssertionError("folder context exited without enter")
+        self.active = False
+
+
+class _FakeGui:
+    def __init__(self) -> None:
+        self.folders: dict[str, _NonReentrantFolder] = {}
+
+    def add_folder(self, name: str) -> _NonReentrantFolder:
+        folder = _NonReentrantFolder()
+        self.folders[name] = folder
+        return folder
+
+    def add_dropdown(self, _label: str, *, initial_value: object, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle(initial_value)
+
+    def add_button(self, _label: str, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle()
+
+    def add_markdown(self, content: str, **_kwargs: object) -> _FakeGuiHandle:
+        handle = _FakeGuiHandle()
+        handle.content = content
+        return handle
+
+    def add_slider(self, _label: str, *, initial_value: object, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle(initial_value)
+
+    def add_number(self, _label: str, *, initial_value: object, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle(initial_value)
+
+    def add_checkbox(self, _label: str, *, initial_value: object, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle(initial_value)
+
+    def add_text(self, _label: str, *, initial_value: object, **_kwargs: object) -> _FakeGuiHandle:
+        return _FakeGuiHandle(initial_value)
+
+
+def _make_batch_vis_config(tmp_path: Path) -> ParcBatchVisConfig:
+    return ParcBatchVisConfig(
         output_root=tmp_path,
         dataset="mid_climbing",
         task_list=None,
@@ -414,6 +473,16 @@ def test_record_review_reads_note_while_locked_without_viser(tmp_path: Path) -> 
         visual_fps_multiplier=1,
         show_meshes=True,
     )
+
+
+def test_record_review_reads_note_while_locked_without_viser(tmp_path: Path) -> None:
+    sample = ParcVisSample(
+        task="a_task",
+        index=0,
+        qpos_npz=(tmp_path / "a_task_original.npz").resolve(),
+        object_urdf=None,
+    )
+    config = _make_batch_vis_config(tmp_path)
     player = ParcBatchViserPlayer(config, [sample])
     lock = _RecordingLock()
     note_input = _LockAwareNoteHandle("locked snapshot", lock)
@@ -428,6 +497,22 @@ def test_record_review_reads_note_while_locked_without_viser(tmp_path: Path) -> 
     assert note_input.read_with_lock is True
     latest = load_latest_reviews(config.review_file)
     assert latest["a_task"].note == "locked snapshot"
+
+
+def test_build_gui_does_not_reenter_playback_folder_context(tmp_path: Path) -> None:
+    sample = ParcVisSample(
+        task="a_task",
+        index=0,
+        qpos_npz=(tmp_path / "a_task_original.npz").resolve(),
+        object_urdf=None,
+    )
+    player = ParcBatchViserPlayer(_make_batch_vis_config(tmp_path), [sample])
+    player.server = SimpleNamespace(gui=_FakeGui())
+
+    player._build_gui()
+
+    assert player.frame_slider is not None
+    assert player.playback_folder is not None
 
 
 def test_parc_batch_vis_cli_defaults_review_file(tmp_path: Path) -> None:
