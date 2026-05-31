@@ -177,7 +177,7 @@ class ParcBatchViserPlayer:
         self._build_gui()
         self._load_sample(self.current_index)
         threading.Thread(target=self._player_loop, daemon=True).start()
-        print(f"[parc_batch_vis] Loaded {len(self.samples)} samples. Open the viser URL printed above.")
+        print(f"[parc_batch_vis] Loaded {len(self.samples)} samples. Open the viser URL printed above.", flush=True)
 
     def _build_gui(self) -> None:
         task_options = [sample.task for sample in self.samples]
@@ -306,7 +306,6 @@ class ParcBatchViserPlayer:
                 self._draw_frame(int(self.frame_slider.value))
 
     def _load_sample(self, index: int) -> None:
-        import yourdfpy  # type: ignore[import-untyped]
         from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
         with self._lock:
@@ -339,14 +338,12 @@ class ParcBatchViserPlayer:
             self.fps_input.value = self.source_fps
 
             try:
-                robot_urdf_y = yourdfpy.URDF.load(self.config.robot_urdf, load_meshes=True, build_scene_graph=True)
-                self.robot_urdf = ViserUrdf(self.server, urdf_or_path=robot_urdf_y, root_node_name="/robot")
+                self.robot_urdf = ViserUrdf(self.server, urdf_or_path=self.config.robot_urdf, root_node_name="/robot")
                 self.robot_urdf.show_visual = bool(self.show_meshes_cb.value)
                 self.robot_dof = len(self.robot_urdf.get_actuated_joint_limits())
 
                 if sample.object_urdf is not None:
-                    object_urdf_y = yourdfpy.URDF.load(sample.object_urdf, load_meshes=True, build_scene_graph=True)
-                    self.object_urdf = ViserUrdf(self.server, urdf_or_path=object_urdf_y, root_node_name="/object")
+                    self.object_urdf = ViserUrdf(self.server, urdf_or_path=sample.object_urdf, root_node_name="/object")
                     self.object_urdf.show_visual = bool(self.show_meshes_cb.value)
                 else:
                     self.object_root.position = np.zeros(3)
