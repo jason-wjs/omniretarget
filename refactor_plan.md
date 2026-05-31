@@ -612,29 +612,29 @@ src/omniretarget/mujoco/
 
 **Phase tasks:**
 
-- [ ] Add tests for qpos layout detection using existing small fixtures or model files.
+- [x] Add tests for qpos layout detection using existing small fixtures or model files.
 
-- [ ] Add tests for robot link position lookup with known link names.
+- [x] Add tests for robot link position lookup with known link names.
 
-- [ ] Add tests for ground/object pair filtering rules used by non-penetration and evaluation.
+- [x] Add tests for ground/object pair filtering rules used by non-penetration and evaluation.
 
-- [ ] Create `mujoco/assets.py` for robot XML selection:
+- [x] Create `mujoco/assets.py` for robot XML selection:
   - ground
   - dynamic object
   - `multi_boxes`
   - PARC generated scene XML
 
-- [ ] Create `mujoco/model_state.py` to own MuJoCo model/data and dynamic-object detection.
+- [x] Create `mujoco/model_state.py` to own MuJoCo model/data and dynamic-object detection.
 
-- [ ] Create `mujoco/kinematics.py` for link positions and point Jacobians.
+- [x] Create `mujoco/kinematics.py` for link positions and point Jacobians.
 
-- [ ] Create `mujoco/collision.py` for collision candidate filtering and geometry distance queries.
+- [x] Create `mujoco/collision.py` for collision candidate filtering and geometry distance queries.
 
-- [ ] First migrate `evaluation/eval_retargeting.py` to use the new query modules.
+- [x] First migrate `evaluation/eval_retargeting.py` to use the new query modules.
 
-- [ ] Then migrate `src/interaction_mesh_retargeter.py` private methods to wrappers around the new query modules.
+- [x] Then migrate `src/interaction_mesh_retargeter.py` private methods to wrappers around the new query modules.
 
-- [ ] Keep old private method names temporarily if tests or nearby code still call them.
+- [x] Keep old private method names temporarily if tests or nearby code still call them.
 
 **Focused checks:**
 
@@ -657,6 +657,11 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_adam_pro_xml_urdf_cons
 - Query extraction changes numerical outputs without an explicit reason.
 - Dynamic object qpos layout becomes ambiguous.
 - MuJoCo model ownership becomes shared in a way that introduces stale state.
+
+**Verification note:** Phase 4 adds 7 MuJoCo seam tests. Focused Phase 4 gate:
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_mujoco_query_seam.py tests/test_eval_contact_joint_defaults.py tests/test_parc_process.py tests/test_convert_data_format_parc_mj.py tests/test_adam_pro_largebox_scene_xml.py tests/test_adam_pro_xml_urdf_consistency.py -q`
+passed with 32 passed, 1 skipped. Full-suite count changes from 168 passed, 1 skipped to
+180 passed, 1 skipped.
 
 ---
 

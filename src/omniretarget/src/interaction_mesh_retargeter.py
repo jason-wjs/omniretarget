@@ -14,6 +14,22 @@ from scipy.spatial.transform import Rotation  # type: ignore[import-untyped]
 from tqdm import tqdm
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
+from omniretarget.mujoco.collision import (  # noqa: E402
+    geom_distance,
+    geom_pair_allowed_for_object_or_ground,
+    geometry_name,
+    geometry_names,
+    prefilter_pairs_with_mj_collision,
+    should_enforce_non_penetration_pair,
+)
+from omniretarget.mujoco.kinematics import (  # noqa: E402
+    body_id,
+    link_positions,
+    point_jacobian_qpos,
+    qdot_to_qvel_transform,
+    world_to_body_frame,
+)
+from omniretarget.mujoco.model_state import load_model_state  # noqa: E402
 # Import with type ignore for mypy compatibility
 from omniretarget.src.mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
     _world_mesh_from_geom,
@@ -103,23 +119,17 @@ class InteractionMeshRetargeter:
         if self.visualize:
             self._setup_visualization()
 
-        # Load Mujoco model
-        if self.object_name == "ground":
-            robot_xml_path = self.robot_model_path.replace(".urdf", ".xml")
-        elif self.object_name == "multi_boxes":
-            robot_xml_path = self.task_constants.SCENE_XML_FILE
-        else:
-            robot_xml_path = self.robot_model_path.replace(".urdf", "_w_" + self.object_name + ".xml")
+        model_state = load_model_state(
+            robot_model_path=self.robot_model_path,
+            object_name=self.object_name,
+            robot_dof=self.task_constants.ROBOT_DOF,
+            scene_xml_file=getattr(self.task_constants, "SCENE_XML_FILE", None),
+        )
+        self.robot_model = model_state.model
+        print("Loading robot model from: ", model_state.robot_xml_path)
 
-        self.robot_model = mujoco.MjModel.from_xml_path(robot_xml_path)
-        print("Loading robot model from: ", robot_xml_path)
-
-        self.robot_data = mujoco.MjData(self.robot_model)
-
-        if self.robot_data.qpos.shape[0] > 7 + self.task_constants.ROBOT_DOF:
-            self.has_dynamic_object = True
-        else:
-            self.has_dynamic_object = False
+        self.robot_data = model_state.data
+        self.has_dynamic_object = model_state.has_dynamic_object
 
         self.nq = self.robot_model.nq
 
@@ -643,20 +653,12 @@ class InteractionMeshRetargeter:
 
     def _should_enforce_non_penetration_pair(self, pair_key: tuple[int, int]) -> bool:
         """Keep ground constraints always on and gate object constraints by config."""
-        if self.activate_obj_non_penetration or self.object_name == "ground":
-            return True
-
-        if not hasattr(self, "_geom_names"):
-            return True
-
-        geom_a, geom_b = pair_key
-        geom_a_name = self._geom_names[geom_a]
-        geom_b_name = self._geom_names[geom_b]
-        involves_ground = ("ground" in geom_a_name) or ("ground" in geom_b_name)
-        if involves_ground:
-            return True
-
-        return not ((self.object_name in geom_a_name) or (self.object_name in geom_b_name))
+        return should_enforce_non_penetration_pair(
+            pair_key,
+            geom_names=getattr(self, "_geom_names", None),
+            object_name=self.object_name,
+            activate_obj_non_penetration=self.activate_obj_non_penetration,
+        )
 
     def iterate(
         self,
@@ -859,33 +861,8 @@ class InteractionMeshRetargeter:
         return nhat_BA_W @ Jc
 
     def _prefilter_pairs_with_mj_collision(self, threshold: float):
-        m, d = self.robot_model, self.robot_data
-        ngeom = m.ngeom
-
-        self._geom_names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(ngeom)]
-
-        if not hasattr(self, "_saved_margins"):
-            self._saved_margins = np.empty_like(m.geom_margin)
-        self._saved_margins[:] = m.geom_margin
-
-        m.geom_margin[:] = threshold
-
-        # Run collision. This runs broad→narrow and fills d.contact.
-        mujoco.mj_collision(m, d)
-
-        # Collect unique candidate pairs that involve at least one masked geom
-        candidates = set()
-        for k in range(d.ncon):
-            c = d.contact[k]
-            g1, g2 = int(c.geom1), int(c.geom2)
-            if g1 < 0 or g2 < 0:
-                continue
-            candidates.add((min(g1, g2), max(g1, g2)))
-
-        # Restore margins to keep physics untouched
-        m.geom_margin[:] = self._saved_margins
-
-        return candidates
+        self._geom_names = geometry_names(self.robot_model)
+        return prefilter_pairs_with_mj_collision(self.robot_model, self.robot_data, threshold)
 
     def _update_jacobians_and_phis_from_q(self, q: np.ndarray):
         self.robot_data.qpos[:] = q
@@ -899,34 +876,13 @@ class InteractionMeshRetargeter:
         candidates = self._prefilter_pairs_with_mj_collision(threshold)
 
         Js, phis = {}, {}
-        fromto = np.zeros(6, dtype=float)
-
         # 2) Precise distance only on candidates (early-exit at threshold)
-        contype, conaff = m.geom_contype, m.geom_conaffinity
-
-        def masks_ok(g1, g2):
-            if contype[g1] == 0 and conaff[g1] == 0:
-                return False
-            if contype[g2] == 0 and conaff[g2] == 0:
-                return False
-            if self.object_name in self._geom_names[g1] and "ground" in self._geom_names[g2]:
-                return False
-            if "ground" in self._geom_names[g1] and self.object_name in self._geom_names[g2]:
-                return False
-            return (
-                self.object_name in self._geom_names[g1]
-                or self.object_name in self._geom_names[g2]
-                or "ground" in self._geom_names[g1]
-                or "ground" in self._geom_names[g2]
-            )
-
         for g1, g2 in candidates:
             # Optional: keep your own filters here (e.g., skip object-ground, only keep interaction with object/ground)
-            if not masks_ok(g1, g2):
+            if not geom_pair_allowed_for_object_or_ground(m, self._geom_names, self.object_name, g1, g2):
                 continue
 
-            fromto[:] = 0.0
-            dist = mujoco.mj_geomDistance(m, d, g1, g2, threshold, fromto)
+            dist, fromto = geom_distance(m, d, g1, g2, threshold)
             if dist <= threshold:
                 J_rel = self._compute_jacobian_for_contact_relative(
                     m.geom(g1), m.geom(g2), self._geom_names[g1], self._geom_names[g2], fromto, dist
@@ -942,14 +898,11 @@ class InteractionMeshRetargeter:
 
     def _world_to_body_frame(self, p_w: np.ndarray, body_idx: int) -> np.ndarray:
         """Transform point from world frame to body frame."""
-        p_w = np.asarray(p_w).reshape(3)
-        body_pos = self.robot_data.xpos[body_idx].reshape(3)
-        body_mat = self.robot_data.xmat[body_idx].reshape(3, 3)
-        return body_mat.T @ (p_w - body_pos)
+        return world_to_body_frame(self.robot_data, p_w, body_idx)
 
     def _get_geometry_name(self, geom_id: int) -> str:
         """Get geometry name from ID."""
-        return mujoco.mj_id2name(self.robot_model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
+        return geometry_name(self.robot_model, geom_id)
 
     def _build_transform_qdot_to_qvel_fast(self, use_world_omega=True):
         """
@@ -960,80 +913,12 @@ class InteractionMeshRetargeter:
 
         If use_world_omega=False, uses BODY-omega mapping (for debugging).
         """
-        nq, nv = self.robot_model.nq, self.robot_model.nv
-        T = np.zeros((nv, nq), dtype=float)
-
-        # ---- root free joint (assumed joint 0) ----
-        j0 = 0
-        assert self.robot_model.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE
-        qadr = self.robot_model.jnt_qposadr[j0]  # 0
-        dadr = self.robot_model.jnt_dofadr[j0]  # 0
-
-        # Linear block: v_lin = xyz_dot
-        T[dadr : dadr + 3, qadr : qadr + 3] = np.eye(3)
-
-        # Angular block: ω_* = 2 * E_*(q) * quat_dot
-        w, x, y, z = self.robot_data.qpos[qadr + 3 : qadr + 7]
-
-        def get_e_world(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, qz, -qy],
-                    [-qy, -qz, qw, qx],
-                    [-qz, qy, -qx, qw],
-                ]
-            )
-
-        def get_e_body(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, -qz, qy],
-                    [-qy, qz, qw, -qx],
-                    [-qz, -qy, qx, qw],
-                ]
-            )
-
-        E_fn = get_e_world if use_world_omega else get_e_body
-
-        # ---- FREE joint #1 (human/root): use model addresses, but this should be the first joint ----
-        j_free1 = 0
-        assert self.robot_model.jnt_type[j_free1] == mujoco.mjtJoint.mjJNT_FREE
-        qadr1 = int(self.robot_model.jnt_qposadr[j_free1])  # expect 0
-        dadr1 = int(self.robot_model.jnt_dofadr[j_free1])  # start of its 6 qvel dofs
-
-        qw, qx, qy, qz = self.robot_data.qpos[qadr1 + 3 : qadr1 + 7]
-        E1 = 2.0 * E_fn(qw, qx, qy, qz)
-        # linear-first: v_W = rdot, ω_W = 2E(q) * quat_dot
-        T[dadr1 + 0 : dadr1 + 3, qadr1 + 0 : qadr1 + 3] = np.eye(3)  # v block
-        T[dadr1 + 3 : dadr1 + 6, qadr1 + 3 : qadr1 + 7] = E1  # ω block
-
-        if self.has_dynamic_object:
-            # ---- FREE joint #2 (object): assume it's the last FREE joint; fill its 6x7 block ----
-            # Find it by type (safer than hardcoding tail indices)
-            free_joints = [
-                j for j in range(self.robot_model.njnt) if self.robot_model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE
-            ]
-            assert len(free_joints) >= 2, "Expected two FREE joints (human + object)."
-            j_free2 = free_joints[1]  # second FREE joint
-            qadr2 = int(self.robot_model.jnt_qposadr[j_free2])  # expect nq-7
-            dadr2 = int(self.robot_model.jnt_dofadr[j_free2])  # its 6 qvel dofs (often at nv-6)
-
-            qw, qx, qy, qz = self.robot_data.qpos[qadr2 + 3 : qadr2 + 7]
-            E2 = 2.0 * E_fn(qw, qx, qy, qz)
-            T[dadr2 + 0 : dadr2 + 3, qadr2 + 0 : qadr2 + 3] = np.eye(3)  # v block
-            T[dadr2 + 3 : dadr2 + 6, qadr2 + 3 : qadr2 + 7] = E2  # ω block
-
-        # ---- remaining hinge/slide joints: v = qdot ----
-        for j in range(1, self.robot_model.njnt):
-            jt = self.robot_model.jnt_type[j]
-            if jt in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE):
-                qa = self.robot_model.jnt_qposadr[j]
-                da = self.robot_model.jnt_dofadr[j]
-                T[da, qa] = 1.0
-            elif jt == mujoco.mjtJoint.mjJNT_BALL:
-                raise NotImplementedError("BALL joint block not implemented.")
-
-        return T
+        return qdot_to_qvel_transform(
+            self.robot_model,
+            self.robot_data,
+            has_dynamic_object=self.has_dynamic_object,
+            use_world_omega=use_world_omega,
+        )
 
     def _calc_contact_jacobian_from_point(self, body_idx: int, p_body: np.ndarray, input_world=False):
         """
@@ -1043,28 +928,14 @@ class InteractionMeshRetargeter:
         Fast analytic version: J_qdot = J_v @ T(q)
         """
 
-        p_body = np.asarray(p_body, dtype=float).reshape(3)
-
-        # 1) Make sure kinematics are current once
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        # 2) World point (3,1) for mj_jac
-        R_WB = self.robot_data.xmat[body_idx].reshape(3, 3)
-        p_WB = self.robot_data.xpos[body_idx]
-
-        if input_world:
-            p_W = p_body.astype(np.float64).reshape(3, 1)
-        else:
-            p_W = (p_WB + R_WB @ p_body).astype(np.float64).reshape(3, 1)
-
-        # 3) J_v: translational Jacobian wrt generalized velocities (3 x nv)
-        Jp = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        Jr = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        mujoco.mj_jac(self.robot_model, self.robot_data, Jp, Jr, p_W, int(body_idx))  # Jp = J_v
-
-        T = self._build_transform_qdot_to_qvel_fast()
-
-        return Jp @ T
+        return point_jacobian_qpos(
+            self.robot_model,
+            self.robot_data,
+            body_idx,
+            p_body,
+            input_world=input_world,
+            has_dynamic_object=self.has_dynamic_object,
+        )
 
     def _calc_manipulator_jacobians(
         self,
@@ -1094,15 +965,15 @@ class InteractionMeshRetargeter:
         mujoco.mj_forward(self.robot_model, self.robot_data)
 
         for name, link_name in links.items():
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
+            body_idx = body_id(self.robot_model, link_name)
 
             if point_offsets is not None:
                 pC_B = point_offsets
             else:
                 pC_B = np.zeros(3)
 
-            J = self._calc_contact_jacobian_from_point(body_id, pC_B)
-            pos_world = self.robot_data.xpos[body_id]
+            J = self._calc_contact_jacobian_from_point(body_idx, pC_B)
+            pos_world = self.robot_data.xpos[body_idx]
 
             if obj_frame:
                 p_XC = obj_rot_inv @ (pos_world - obj_pos)
@@ -1121,27 +992,10 @@ class InteractionMeshRetargeter:
 
     def _get_robot_link_positions(self, q, link_names):
         """Get robot link positions for given configuration using Mujoco."""
-        mujoco_q = q.copy()
-
-        # Set the configuration
-        if mujoco_q.shape != self.robot_data.qpos.shape:
-            self.robot_data.qpos = mujoco_q[:-7]  # Exclude object information from q
-        else:
-            self.robot_data.qpos = mujoco_q
-        # Forward kinematics to update all positions
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        robot_link_positions = []
-
-        for link_name in link_names:
-            # Get body ID from name
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
-            if body_id == -1:
-                raise ValueError(f"Body {link_name} not found in Mujoco model")
-
-            # Get position in world frame
-            # xpos gives us the position of the body's center of mass in world coordinates
-            pos = self.robot_data.xpos[body_id].copy()
-            robot_link_positions.append(pos)
-
-        return np.array(robot_link_positions)
+        return link_positions(
+            self.robot_model,
+            self.robot_data,
+            q,
+            link_names,
+            allow_trailing_dynamic_object=True,
+        )

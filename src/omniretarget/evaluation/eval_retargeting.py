@@ -25,6 +25,17 @@ from omniretarget.config_types.data_type import (  # noqa: E402
     MotionDataConfig,
 )
 from omniretarget.config_types.robot import RobotConfig  # noqa: E402
+from omniretarget.mujoco.collision import (  # noqa: E402
+    geom_distance,
+    geom_ids_containing,
+    geom_pair_allowed_for_object_or_ground,
+    geometry_name,
+    geometry_names,
+    min_distance_between_body_and_geoms,
+    prefilter_pairs_with_mj_collision,
+)
+from omniretarget.mujoco.kinematics import body_id, link_positions  # noqa: E402
+from omniretarget.mujoco.model_state import load_model_state  # noqa: E402
 from omniretarget.runtime.context import build_evaluation_runtime_context  # noqa: E402
 from omniretarget.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
 from omniretarget.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
@@ -88,23 +99,17 @@ class RetargetingEvaluator:
         # Foot sliding threshold (velocity in m/s)
         self.sliding_threshold = 0.01
 
-        # Load Mujoco model
-        if self.object_name == "ground":
-            robot_xml_path = robot_model_path.replace(".urdf", ".xml")
-        elif self.object_name == "multi_boxes":
-            robot_xml_path = constants.SCENE_XML_FILE  # type: ignore[attr-defined]
-        else:
-            robot_xml_path = robot_model_path.replace(".urdf", "_w_" + self.object_name + ".xml")
+        model_state = load_model_state(
+            robot_model_path=robot_model_path,
+            object_name=self.object_name,
+            robot_dof=constants.ROBOT_DOF,
+            scene_xml_file=getattr(constants, "SCENE_XML_FILE", None),
+        )
+        self.robot_model = model_state.model
+        print("Loading robot model from: ", model_state.robot_xml_path)
 
-        self.robot_model = mujoco.MjModel.from_xml_path(robot_xml_path)
-        print("Loading robot model from: ", robot_xml_path)
-
-        self.robot_data = mujoco.MjData(self.robot_model)
-
-        if self.robot_data.qpos.shape[0] > 7 + constants.ROBOT_DOF:
-            self.has_dynamic_object = True
-        else:
-            self.has_dynamic_object = False
+        self.robot_data = model_state.data
+        self.has_dynamic_object = model_state.has_dynamic_object
 
         # For climbing task, we need to load the terrain
         # ===== libigl object mesh in WORLD frame (static) =====
@@ -140,7 +145,7 @@ class RetargetingEvaluator:
         for gid in range(m.ngeom):
             if m.geom_type[gid] != mujoco.mjtGeom.mjGEOM_MESH:
                 continue  # mesh-only
-            name = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, gid) or ""
+            name = geometry_name(m, gid)
             if self.object_name not in name:
                 continue
             Vw, F = _world_mesh_from_geom(m, d, gid, name)  # your helper
@@ -217,49 +222,11 @@ class RetargetingEvaluator:
         - [-7:-4] object position (xyz) if has_dynamic_object
         - [-4:] object quaternion (wxyz) if has_dynamic_object
         """
-        self.robot_data.qpos[:] = q
-        # Forward kinematics to update all positions
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        robot_link_positions = []
-        for link_name in link_names:
-            # Get body ID from name
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
-            if body_id == -1:
-                raise ValueError(f"Body {link_name} not found in Mujoco model")
-
-            # Get position in world frame
-            # xpos gives us the position of the body's center of mass in world coordinates
-            pos = self.robot_data.xpos[body_id].copy()
-            robot_link_positions.append(pos)
-
-        return np.array(robot_link_positions)
+        return link_positions(self.robot_model, self.robot_data, q, link_names)
 
     def _prefilter_pairs_with_mj_collision(self, threshold: float):
-        m, d = self.robot_model, self.robot_data
-        ngeom = m.ngeom
-
-        self._geom_names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(ngeom)]
-
-        if not hasattr(self, "_saved_margins"):
-            self._saved_margins = np.empty_like(m.geom_margin)
-        self._saved_margins[:] = m.geom_margin
-
-        m.geom_margin[:] = threshold
-        mujoco.mj_collision(m, d)
-
-        candidates = set()
-        for k in range(d.ncon):
-            c = d.contact[k]
-            g1, g2 = int(c.geom1), int(c.geom2)
-            if g1 < 0 or g2 < 0:
-                continue
-            candidates.add((min(g1, g2), max(g1, g2)))
-
-        # Restore margins to keep physics untouched
-        m.geom_margin[:] = self._saved_margins
-
-        return candidates
+        self._geom_names = geometry_names(self.robot_model)
+        return prefilter_pairs_with_mj_collision(self.robot_model, self.robot_data, threshold)
 
     def evaluate_penetration(self, q_retarget: np.ndarray):
         """
@@ -275,27 +242,6 @@ class RetargetingEvaluator:
         penetration_max_depths = []
         penetration_frames = []
 
-        # helper for name checks (populated by _prefilter_pairs_with_mj_collision)
-        def _is_obj(g):
-            return self.object_name in self._geom_names[g]
-
-        def _is_ground(g):
-            return "ground" in self._geom_names[g]
-
-        def masks_ok(g1, g2):
-            # skip geoms with both masks off
-            if m.geom_contype[g1] == 0 and m.geom_conaffinity[g1] == 0:
-                return False
-            if m.geom_contype[g2] == 0 and m.geom_conaffinity[g2] == 0:
-                return False
-            # exclude object-ground specifically (either order)
-            if (_is_obj(g1) and _is_ground(g2)) or (_is_obj(g2) and _is_ground(g1)):
-                return False
-            # keep only pairs that involve ground or object
-            return _is_obj(g1) or _is_obj(g2) or _is_ground(g1) or _is_ground(g2)
-
-        fromto = np.zeros(6, dtype=float)
-
         for i, q in enumerate(q_retarget):
             d.qpos[:] = q
             mujoco.mj_forward(m, d)  # compute kinematics, aabbs, etc.
@@ -306,10 +252,9 @@ class RetargetingEvaluator:
             # 2) precise distance on candidates; count only strict penetrations
             depths_this_frame = []
             for g1, g2 in candidates:
-                if not masks_ok(g1, g2):
+                if not geom_pair_allowed_for_object_or_ground(m, self._geom_names, self.object_name, g1, g2):
                     continue
-                fromto[:] = 0.0
-                dist = mujoco.mj_geomDistance(m, d, g1, g2, self.collision_detection_threshold, fromto)
+                dist, _ = geom_distance(m, d, g1, g2, self.collision_detection_threshold)
                 # penetration = negative signed distance
                 if dist < -self.penetration_tolerance:
                     depths_this_frame.append(-float(dist))
@@ -535,11 +480,7 @@ class RetargetingEvaluator:
 
         preserved = []
 
-        obj_gids = [
-            g
-            for g in range(self.robot_model.ngeom)
-            if self.object_name in (mujoco.mj_id2name(self.robot_model, mujoco.mjtObj.mjOBJ_GEOM, g) or "")
-        ]
+        obj_gids = geom_ids_containing(self.robot_model, self.object_name)
 
         for _q, demo_joints in zip(q_trajectory, human_joints_motion):
             # demo contacts (object only)
@@ -552,19 +493,17 @@ class RetargetingEvaluator:
                 rb = self.joints_mapping.get(jn, "")
                 if not rb:
                     continue
-                bid = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, rb)
-                if bid == -1:
+                try:
+                    bid = body_id(self.robot_model, rb)
+                except ValueError:
                     continue
-                dist_min = np.inf
-                fromto = np.zeros(6)
-                for g1 in range(self.robot_model.ngeom):
-                    if self.robot_model.geom_bodyid[g1] != bid:
-                        continue
-                    for g2 in obj_gids:
-                        dist = mujoco.mj_geomDistance(
-                            self.robot_model, self.robot_data, g1, g2, self.collision_detection_threshold, fromto
-                        )
-                        dist_min = min(dist_min, dist)
+                dist_min = min_distance_between_body_and_geoms(
+                    self.robot_model,
+                    self.robot_data,
+                    bid,
+                    obj_gids,
+                    self.collision_detection_threshold,
+                )
 
                 if dist_min > self.contact_threshold:
                     ok = False

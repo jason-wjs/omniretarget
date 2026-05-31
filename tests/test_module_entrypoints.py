@@ -89,6 +89,26 @@ class NoInsertPath(list[str]):
             "omniretarget.retargeting.batch",
             ["omniretarget.retargeting.batch"],
         ),
+        (
+            "omniretarget.mujoco",
+            ["omniretarget.mujoco"],
+        ),
+        (
+            "omniretarget.mujoco.assets",
+            ["omniretarget.mujoco.assets"],
+        ),
+        (
+            "omniretarget.mujoco.model_state",
+            ["omniretarget.mujoco.model_state"],
+        ),
+        (
+            "omniretarget.mujoco.kinematics",
+            ["omniretarget.mujoco.kinematics"],
+        ),
+        (
+            "omniretarget.mujoco.collision",
+            ["omniretarget.mujoco.collision"],
+        ),
     ],
 )
 def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: str, reset_modules: list[str]) -> None:
