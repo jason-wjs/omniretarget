@@ -422,6 +422,10 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_module_entrypoints.py
 
 ## Phase 2: Retargeting Pipeline Seam
 
+**Status:** Complete.
+
+**Verification note:** Phase 2 adds retargeting seam tests and new import-coverage cases, so the full-suite count changes from `124 passed, 1 skipped` to `159 passed, 1 skipped`.
+
 **Goal:** Move retargeting workflow logic out of `examples/` into a deeper `retargeting` module while keeping CLI adapters stable.
 
 **Problem being solved:** `src/omniretarget/examples/robot_retarget.py` is not just an example. It owns the single-clip pipeline, and `parallel_robot_retarget.py` imports its helper functions. This makes `examples` a hidden core module.
@@ -452,35 +456,35 @@ These existing entry points must still import and run:
 
 **Phase tasks:**
 
-- [ ] Add tests that import new `omniretarget.retargeting` modules without mutating `sys.path`.
+- [x] Add tests that import new `omniretarget.retargeting` modules without mutating `sys.path`.
 
-- [ ] Move `load_motion_data()` behavior to `retargeting/motion_source.py`.
+- [x] Move `load_motion_data()` behavior to `retargeting/motion_source.py`.
 
-- [ ] Keep `examples.robot_retarget.load_motion_data()` as a wrapper.
+- [x] Keep `examples.robot_retarget.load_motion_data()` as a wrapper.
 
-- [ ] Move `create_ground_points()` and `setup_object_data()` behavior to `retargeting/object_setup.py`.
+- [x] Move `create_ground_points()` and `setup_object_data()` behavior to `retargeting/object_setup.py`.
 
-- [ ] Keep old functions in `examples.robot_retarget` as wrappers.
+- [x] Keep old functions in `examples.robot_retarget` as wrappers.
 
-- [ ] Move object pose order conversion and q initialization to `retargeting/initialization.py`.
+- [x] Move object pose order conversion and q initialization to `retargeting/initialization.py`.
 
-- [ ] Keep old initialization functions as wrappers.
+- [x] Keep old initialization functions as wrappers.
 
-- [ ] Move foot-sticking preprocessing orchestration to `retargeting/preprocessing.py` only after wrappers pass parity tests.
+- [x] Move foot-sticking preprocessing orchestration to `retargeting/preprocessing.py` only after wrappers pass parity tests.
 
-- [ ] Move augmentation plan generation from `parallel_robot_retarget.py` to `retargeting/augmentation.py`.
+- [x] Move augmentation plan generation from `parallel_robot_retarget.py` to `retargeting/augmentation.py`.
 
-- [ ] Create `retargeting/results.py` for output path naming and `.npz` result conventions.
+- [x] Create `retargeting/results.py` for output path naming and `.npz` result conventions.
 
-- [ ] Create `retargeting/pipeline.py` with a single-clip workflow function.
+- [x] Create `retargeting/pipeline.py` with a single-clip workflow function.
 
-- [ ] Change `examples/robot_retarget.py` into a CLI adapter that calls `retargeting.pipeline`.
+- [x] Change `examples/robot_retarget.py` into a CLI adapter that calls `retargeting.pipeline`.
 
-- [ ] Create `retargeting/batch.py` for batch orchestration.
+- [x] Create `retargeting/batch.py` for batch orchestration.
 
-- [ ] Change `examples/parallel_robot_retarget.py` into a CLI adapter that calls `retargeting.batch`.
+- [x] Change `examples/parallel_robot_retarget.py` into a CLI adapter that calls `retargeting.batch`.
 
-- [ ] Do not move PARC batch visualization in this phase.
+- [x] Do not move PARC batch visualization in this phase.
 
 **Focused checks:**
 

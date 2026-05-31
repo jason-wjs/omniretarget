@@ -53,6 +53,42 @@ class NoInsertPath(list[str]):
             "omniretarget.examples.parc_batch_process_to_mj",
             ["omniretarget.examples.parc_batch_process_to_mj"],
         ),
+        (
+            "omniretarget.retargeting",
+            ["omniretarget.retargeting"],
+        ),
+        (
+            "omniretarget.retargeting.pipeline",
+            ["omniretarget.retargeting.pipeline"],
+        ),
+        (
+            "omniretarget.retargeting.motion_source",
+            ["omniretarget.retargeting.motion_source"],
+        ),
+        (
+            "omniretarget.retargeting.object_setup",
+            ["omniretarget.retargeting.object_setup"],
+        ),
+        (
+            "omniretarget.retargeting.preprocessing",
+            ["omniretarget.retargeting.preprocessing"],
+        ),
+        (
+            "omniretarget.retargeting.initialization",
+            ["omniretarget.retargeting.initialization"],
+        ),
+        (
+            "omniretarget.retargeting.augmentation",
+            ["omniretarget.retargeting.augmentation"],
+        ),
+        (
+            "omniretarget.retargeting.results",
+            ["omniretarget.retargeting.results"],
+        ),
+        (
+            "omniretarget.retargeting.batch",
+            ["omniretarget.retargeting.batch"],
+        ),
     ],
 )
 def test_entrypoint_import_does_not_mutate_sys_path(monkeypatch, module_name: str, reset_modules: list[str]) -> None:
