@@ -515,6 +515,25 @@ def test_build_gui_does_not_reenter_playback_folder_context(tmp_path: Path) -> N
     assert player.playback_folder is not None
 
 
+def test_refresh_review_ui_warns_when_terrain_is_missing(tmp_path: Path) -> None:
+    sample = ParcVisSample(
+        task="a_task",
+        index=0,
+        qpos_npz=(tmp_path / "a_task_original.npz").resolve(),
+        object_urdf=None,
+    )
+    player = ParcBatchViserPlayer(_make_batch_vis_config(tmp_path), [sample])
+    player.error_md = SimpleNamespace(content="")
+    player.status_md = SimpleNamespace(content="")
+    player.path_md = SimpleNamespace(content="")
+    player.note_input = SimpleNamespace(value="")
+
+    player._refresh_review_ui()
+
+    assert "terrain URDF missing" in player.error_md.content
+    assert "Terrain: `missing`" in player.path_md.content
+
+
 def test_parc_batch_vis_cli_defaults_review_file(tmp_path: Path) -> None:
     args = build_arg_parser().parse_args(["--output-root", str(tmp_path), "--dataset", "mid_climbing"])
     config = config_from_args(args)

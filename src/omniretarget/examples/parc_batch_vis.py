@@ -456,6 +456,8 @@ class ParcBatchViserPlayer:
                 f"QPOS: `{sample.qpos_npz}`  \n"
                 f"Terrain: `{sample.object_urdf if sample.object_urdf is not None else 'missing'}`"
             )
+            if sample.object_urdf is None and not self.error_md.content:
+                self.error_md.content = "Warning: terrain URDF missing; showing robot only."
             self.note_input.value = record.note if record is not None else ""
 
     def _remove_loaded_urdfs(self) -> None:
