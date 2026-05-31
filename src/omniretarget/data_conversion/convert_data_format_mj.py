@@ -15,7 +15,7 @@ import tyro
 from omniretarget.config_types.data_conversion import DataConversionConfig  # noqa: E402
 from omniretarget.config_types.data_type import MotionDataConfig  # noqa: E402
 from omniretarget.config_types.robot import RobotConfig  # noqa: E402
-from omniretarget.path_utils import package_path  # noqa: E402
+from omniretarget.runtime.context import build_mj_conversion_runtime_context  # noqa: E402
 
 DynamicState = Tuple[
     torch.Tensor,
@@ -45,34 +45,11 @@ def create_task_constants(
     object_name: str | None = None,
 ) -> SimpleNamespace:
     """Create a mutable namespace with robot and motion data attributes."""
-    namespace = SimpleNamespace()
-
-    for attr in dir(robot_config):
-        if attr.isupper() and not attr.startswith("_"):
-            setattr(namespace, attr, getattr(robot_config, attr))
-
-    for attr, value in motion_data_config.legacy_constants().items():
-        setattr(namespace, attr, value)
-
-    if object_name is not None:
-        namespace.OBJECT_NAME = object_name
-
-    if namespace.OBJECT_NAME != "ground":
-        namespace.OBJECT_URDF_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"))
-        namespace.OBJECT_MESH_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"))
-        namespace.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"))
-        namespace.SCENE_XML_FILE = str(
-            package_path(
-                f"models/{robot_config.robot_type}/"
-                f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
-            )
-        )
-    else:
-        namespace.OBJECT_URDF_FILE = namespace.ROBOT_URDF_FILE
-        namespace.OBJECT_MESH_FILE = ""
-        namespace.SCENE_XML_FILE = namespace.ROBOT_URDF_FILE.replace(".urdf", ".xml")
-
-    return namespace
+    return build_mj_conversion_runtime_context(
+        robot_config=robot_config,
+        motion_data_config=motion_data_config,
+        object_name=object_name,
+    ).to_legacy_namespace()
 
 
 def quat_conjugate(q):  # (...,4) [w,x,y,z]

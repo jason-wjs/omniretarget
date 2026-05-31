@@ -25,7 +25,7 @@ from omniretarget.config_types.data_type import (  # noqa: E402
     MotionDataConfig,
 )
 from omniretarget.config_types.robot import RobotConfig  # noqa: E402
-from omniretarget.path_utils import package_path  # noqa: E402
+from omniretarget.runtime.context import build_evaluation_runtime_context  # noqa: E402
 from omniretarget.src.mujoco_utils import _world_mesh_from_geom  # type: ignore[import-not-found]  # noqa: E402
 from omniretarget.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
     calculate_scale_factor,
@@ -47,41 +47,12 @@ def create_task_constants(
     object_dir: str | None = None,
 ) -> SimpleNamespace:
     """Create a mutable namespace that mimics the old constants modules."""
-    namespace = SimpleNamespace()
-
-    # Copy UPPER_CASE attributes from robot config
-    for attr in dir(robot_config):
-        if attr.isupper() and not attr.startswith("_"):
-            setattr(namespace, attr, getattr(robot_config, attr))
-
-    # Copy legacy constants from motion data config
-    for attr, value in motion_data_config.legacy_constants().items():
-        setattr(namespace, attr, value)
-
-    # Override or supplement object information if requested
-    if object_name is not None:
-        namespace.OBJECT_NAME = object_name
-
-    # Provide default object asset paths for non-ground objects
-    if namespace.OBJECT_NAME != "ground":
-        namespace.OBJECT_URDF_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.urdf"))
-        namespace.OBJECT_MESH_FILE = str(package_path(f"models/{namespace.OBJECT_NAME}/{namespace.OBJECT_NAME}.obj"))
-        namespace.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{namespace.OBJECT_NAME}.urdf.jinja"))
-        namespace.SCENE_XML_FILE = str(
-            package_path(
-                f"models/{robot_config.robot_type}/"
-                f"{robot_config.robot_type}_{namespace.ROBOT_DOF}dof_w_{namespace.OBJECT_NAME}.xml"
-            )
-        )
-    else:
-        namespace.SCENE_XML_FILE = namespace.ROBOT_URDF_FILE.replace(".urdf", ".xml")
-
-    if object_dir is not None:
-        namespace.OBJECT_DIR = object_dir
-        namespace.OBJECT_URDF_FILE = f"{object_dir}/{namespace.OBJECT_NAME}.urdf"
-        namespace.OBJECT_MESH_FILE = f"{object_dir}/{namespace.OBJECT_NAME}.obj"
-
-    return namespace
+    return build_evaluation_runtime_context(
+        robot_config=robot_config,
+        motion_data_config=motion_data_config,
+        object_name=object_name,
+        object_dir=object_dir,
+    ).to_legacy_namespace()
 
 
 class RetargetingEvaluator:

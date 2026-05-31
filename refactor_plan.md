@@ -284,6 +284,10 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
 ## Phase 1: Runtime Context Seam
 
+**Status:** Complete.
+
+**Verification note:** Phase 1 adds 9 runtime-context parity tests, so the full-suite count changes from `115 passed, 1 skipped` to `124 passed, 1 skipped`.
+
 **Goal:** Create one deep module for resolved robot, motion, task, object, scene, and asset facts while preserving every old caller interface.
 
 **Problem being solved:** The repository currently reconstructs task constants in multiple places:
@@ -354,24 +358,24 @@ Compare old and new behavior for:
 
 **Phase tasks:**
 
-- [ ] Add tests comparing `robot_retarget.create_task_constants()` to `RuntimeContext.to_legacy_namespace()` for:
+- [x] Add tests comparing `robot_retarget.create_task_constants()` to `RuntimeContext.to_legacy_namespace()` for:
   - `robot_only` / `lafan` / `adam_pro`
   - `object_interaction` / `smplh` / `adam_pro`
   - `climbing` / `mocap` / `g1`
   - `climbing` / `parc_humanoid` / `g1`
 
-- [ ] Add tests comparing `evaluation.eval_retargeting.create_task_constants()` to the new runtime-context equivalent for:
+- [x] Add tests comparing `evaluation.eval_retargeting.create_task_constants()` to the new runtime-context equivalent for:
   - `object_name="ground"`
   - `object_name="largebox"`
   - `object_name="multi_boxes"` with `object_dir`
 
-- [ ] Add tests comparing `data_conversion.convert_data_format_mj.create_task_constants()` to the new runtime-context equivalent for:
+- [x] Add tests comparing `data_conversion.convert_data_format_mj.create_task_constants()` to the new runtime-context equivalent for:
   - `object_name="ground"`
   - `object_name="largebox"`
 
-- [ ] Create `src/omniretarget/runtime/__init__.py`.
+- [x] Create `src/omniretarget/runtime/__init__.py`.
 
-- [ ] Create `src/omniretarget/runtime/assets.py` for path resolution only:
+- [x] Create `src/omniretarget/runtime/assets.py` for path resolution only:
   - robot URDF path
   - robot XML path
   - object URDF path
@@ -379,17 +383,17 @@ Compare old and new behavior for:
   - object URDF template path
   - scene XML path
 
-- [ ] Create `src/omniretarget/runtime/context.py` with `RuntimeContext` and builder functions.
+- [x] Create `src/omniretarget/runtime/context.py` with `RuntimeContext` and builder functions.
 
-- [ ] Create `src/omniretarget/runtime/validation.py` only for compatibility checks already present in existing code.
+- [x] Create `src/omniretarget/runtime/validation.py` only for compatibility checks already present in existing code.
 
-- [ ] Change `robot_retarget.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
+- [x] Change `robot_retarget.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
 
-- [ ] Change `evaluation.eval_retargeting.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
+- [x] Change `evaluation.eval_retargeting.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
 
-- [ ] Change `data_conversion.convert_data_format_mj.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
+- [x] Change `data_conversion.convert_data_format_mj.create_task_constants()` into a compatibility wrapper around `RuntimeContext`.
 
-- [ ] Do not change `InteractionMeshRetargeter` constructor in this phase.
+- [x] Do not change `InteractionMeshRetargeter` constructor in this phase.
 
 **Focused checks:**
 

@@ -16,12 +16,13 @@ from typing import Literal
 import numpy as np
 import tyro
 
-from omniretarget.config_types.data_type import DEMO_JOINTS_REGISTRY, MotionDataConfig  # noqa: E402
+from omniretarget.config_types.data_type import MotionDataConfig  # noqa: E402
 from omniretarget.config_types.retargeter import RetargeterConfig  # noqa: E402
 from omniretarget.config_types.retargeting import RetargetingConfig  # noqa: E402
 from omniretarget.config_types.robot import RobotConfig  # noqa: E402
 from omniretarget.config_types.task import TaskConfig  # noqa: E402
-from omniretarget.path_utils import package_path  # noqa: E402
+from omniretarget.runtime.context import build_runtime_context  # noqa: E402
+from omniretarget.runtime.validation import validate_retargeting_config  # noqa: E402
 from omniretarget.src.interaction_mesh_retargeter import (  # noqa: E402
     InteractionMeshRetargeter,  # type: ignore[import-not-found]
 )
@@ -71,22 +72,6 @@ _AUGMENTATION_TRANSLATION = np.array([0.2, 0.0, 0.0])
 TaskType = Literal["robot_only", "object_interaction", "climbing"]
 # DataFormat is imported from config_types.data_type
 
-# Adam Pro robot-only hip constraint profile (moderate, asymmetry-preserving).
-# Indices are qpos indices in the retargeting optimization state when q_a_init_idx == -7.
-_ADAM_PRO_ROBOT_ONLY_HIP_LB = {
-    "8": -0.499,   # left hip roll
-    "9": -0.628,   # left hip yaw
-    "14": -1.371,  # right hip roll
-    "15": -0.628,  # right hip yaw
-}
-_ADAM_PRO_ROBOT_ONLY_HIP_UB = {
-    "8": 1.371,   # left hip roll
-    "9": 0.628,   # left hip yaw
-    "14": 0.499,  # right hip roll
-    "15": 0.628,  # right hip yaw
-}
-
-
 # ----------------------------- Helper Functions -----------------------------
 
 
@@ -107,61 +92,12 @@ def create_task_constants(
     Returns:
         SimpleNamespace with all task constants
     """
-    task_constants = SimpleNamespace()
-
-    # Copy all attributes from robot_config
-    for attr in dir(robot_config):
-        if attr.isupper() and not attr.startswith("_"):
-            setattr(task_constants, attr, getattr(robot_config, attr))
-
-    # Copy legacy motion data constants (upper-case for compatibility)
-    for attr, value in motion_data_config.legacy_constants().items():
-        setattr(task_constants, attr, value)
-
-    # Robot-only Adam Pro profile: apply hip roll/yaw manual bounds only.
-    # Keep manual costs untouched (no hip zero-centering prior requested).
-    if task_type == "robot_only" and robot_config.robot_type == "adam_pro":
-        manual_lb = dict(task_constants.MANUAL_LB)
-        manual_ub = dict(task_constants.MANUAL_UB)
-        manual_lb.update(_ADAM_PRO_ROBOT_ONLY_HIP_LB)
-        manual_ub.update(_ADAM_PRO_ROBOT_ONLY_HIP_UB)
-        task_constants.MANUAL_LB = manual_lb
-        task_constants.MANUAL_UB = manual_ub
-
-    # Task-aware mapping override for Adam Pro object interaction:
-    # use hand EE markers only in object mode, while keeping robot-only mappings unchanged.
-    if task_type == "object_interaction" and robot_config.robot_type == "adam_pro":
-        joint_mapping = dict(task_constants.JOINTS_MAPPING)
-        for left_key in ("L_Wrist", "LeftHand"):
-            if left_key in joint_mapping:
-                joint_mapping[left_key] = "left_hand_ee_link"
-        for right_key in ("R_Wrist", "RightHand"):
-            if right_key in joint_mapping:
-                joint_mapping[right_key] = "right_hand_ee_link"
-        task_constants.JOINTS_MAPPING = joint_mapping
-
-    # Task-specific object setup
-    if task_type == "robot_only":
-        obj_name = task_config.object_name or "ground"
-        task_constants.OBJECT_NAME = obj_name
-        task_constants.OBJECT_URDF_FILE = None
-        task_constants.OBJECT_MESH_FILE = None
-    elif task_type == "object_interaction":
-        obj_name = task_config.object_name or "largebox"
-        task_constants.OBJECT_NAME = obj_name
-        task_constants.OBJECT_URDF_FILE = str(package_path(f"models/{obj_name}/{obj_name}.urdf"))
-        task_constants.OBJECT_MESH_FILE = str(package_path(f"models/{obj_name}/{obj_name}.obj"))
-        task_constants.OBJECT_URDF_TEMPLATE = str(package_path(f"models/templates/{obj_name}.urdf.jinja"))
-    elif task_type == "climbing":
-        obj_name = task_config.object_name or "multi_boxes"
-        task_constants.OBJECT_NAME = obj_name
-        object_dir = task_config.object_dir
-        task_constants.OBJECT_DIR = str(object_dir) if object_dir else ""
-        task_constants.OBJECT_URDF_FILE = str(object_dir / f"{obj_name}.urdf") if object_dir else f"{obj_name}.urdf"
-        task_constants.OBJECT_MESH_FILE = str(object_dir / f"{obj_name}.obj") if object_dir else f"{obj_name}.obj"
-        task_constants.SCENE_XML_FILE = ""  # Will be set later
-
-    return task_constants
+    return build_runtime_context(
+        robot_config=robot_config,
+        motion_data_config=motion_data_config,
+        task_config=task_config,
+        task_type=task_type,
+    ).to_legacy_namespace()
 
 
 def validate_config(cfg: RetargetingConfig) -> None:
@@ -173,21 +109,7 @@ def validate_config(cfg: RetargetingConfig) -> None:
     Raises:
         ValueError: If configuration is invalid
     """
-    # Validate that data_format exists in registry (if provided)
-    if cfg.data_format is not None and cfg.data_format not in DEMO_JOINTS_REGISTRY:
-        available = ", ".join(sorted(DEMO_JOINTS_REGISTRY.keys()))
-        raise ValueError(
-            f"Unknown data_format: '{cfg.data_format}'. "
-            f"Available formats: {available}. "
-            f"Add your format to DEMO_JOINTS_REGISTRY in config_types/data_type.py"
-        )
-
-    # Task-specific format requirements
-    if cfg.task_type == "climbing" and cfg.data_format not in (None, "mocap", "parc_humanoid"):
-        raise ValueError("Climbing task requires 'mocap' or 'parc_humanoid' data format")
-    if cfg.task_type == "object_interaction" and cfg.data_format not in (None, "smplh"):
-        raise ValueError("Object interaction requires 'smplh' data format")
-    # robot_only accepts any format in the registry (already validated above)
+    validate_retargeting_config(cfg)
 
 
 def create_ground_points(x_range: tuple[float, float], y_range: tuple[float, float], size: int) -> np.ndarray:
