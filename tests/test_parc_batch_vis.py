@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
+from omniretarget.examples.parc_batch_vis import build_arg_parser, config_from_args
 from omniretarget.parc_process.batch_vis import (
     append_review_record,
     default_review_file,
@@ -283,3 +286,88 @@ def test_missing_review_jsonl_field_reports_file_and_line(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match=r"review\.jsonl:1"):
         load_latest_reviews(review_file)
+
+
+def test_parc_batch_vis_cli_defaults_review_file(tmp_path: Path) -> None:
+    args = build_arg_parser().parse_args(["--output-root", str(tmp_path), "--dataset", "mid_climbing"])
+    config = config_from_args(args)
+
+    assert config.output_root == tmp_path.resolve()
+    assert config.dataset == "mid_climbing"
+    assert config.review_file == tmp_path.resolve() / "vis_review" / "mid_climbing_review.jsonl"
+    assert config.task_list is None
+    assert config.loop is True
+
+
+def test_parc_batch_vis_cli_accepts_task_list_and_no_loop(tmp_path: Path) -> None:
+    task_list = tmp_path / "tasks.txt"
+    task_list.write_text("mid_blocks_001_dm\n", encoding="utf-8")
+
+    args = build_arg_parser().parse_args(
+        [
+            "--output-root",
+            str(tmp_path),
+            "--dataset",
+            "mid_climbing",
+            "--task-list",
+            str(task_list),
+            "--review-file",
+            str(tmp_path / "custom.jsonl"),
+            "--start-task",
+            "mid_blocks_001_dm",
+            "--no-loop",
+        ]
+    )
+    config = config_from_args(args)
+
+    assert config.task_list == task_list.resolve()
+    assert config.review_file == (tmp_path / "custom.jsonl").resolve()
+    assert config.start_task == "mid_blocks_001_dm"
+    assert config.loop is False
+
+
+def test_vis_parc_batch_shell_forwards_env_and_args(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    capture_file = tmp_path / "uv_args.txt"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_uv = fake_bin / "uv"
+    fake_uv.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'printf "%s\\n" "$@" > "${CAPTURE_FILE}"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    task_list = tmp_path / "tasks.txt"
+    task_list.write_text("mid_blocks_001_dm\n", encoding="utf-8")
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["OUTPUT_ROOT"] = str(tmp_path / "out")
+    env["PARC_DATASET"] = "mid_climbing"
+    env["TASK_LIST"] = str(task_list)
+    env["REVIEW_FILE"] = str(tmp_path / "review.jsonl")
+    env["ROBOT_URDF"] = "models/g1/g1_29dof_spherehand.urdf"
+
+    subprocess.run(
+        ["bash", str(repo_root / "scripts" / "parc" / "vis_parc_batch.sh"), "--start-task", "mid_blocks_001_dm"],
+        cwd=repo_root,
+        env=env,
+        check=True,
+    )
+
+    args = capture_file.read_text(encoding="utf-8").splitlines()
+    assert args[:3] == ["run", "python", "-m"]
+    assert args[3] == "omniretarget.examples.parc_batch_vis"
+    assert args[args.index("--output-root") + 1] == str(tmp_path / "out")
+    assert args[args.index("--dataset") + 1] == "mid_climbing"
+    assert args[args.index("--task-list") + 1] == str(task_list)
+    assert args[args.index("--review-file") + 1] == str(tmp_path / "review.jsonl")
+    assert args[args.index("--robot-urdf") + 1] == "models/g1/g1_29dof_spherehand.urdf"
+    assert args[-2:] == ["--start-task", "mid_blocks_001_dm"]
