@@ -111,8 +111,7 @@ def append_review_record(
     note: str,
     timestamp: str | None = None,
 ) -> ReviewRecord:
-    if status not in VALID_REVIEW_STATUSES:
-        raise ValueError(f"invalid review status {status!r}; expected one of {sorted(VALID_REVIEW_STATUSES)}")
+    status = _validate_review_status(status)
     if not isinstance(note, str):
         raise ValueError("note must be a string")
     if timestamp is not None and not isinstance(timestamp, str):
@@ -167,6 +166,10 @@ def first_unreviewed_index(
     latest_reviews: dict[str, ReviewRecord],
     start: int,
 ) -> int:
+    """Return the next unreviewed sample after start, wrapping around.
+
+    If every sample has a latest review, return start.
+    """
     sample_list = list(samples)
     if not sample_list:
         raise ValueError("Cannot find an unreviewed sample in an empty playlist")
@@ -183,9 +186,7 @@ def _review_record_from_payload(payload: object) -> ReviewRecord:
     if not isinstance(payload, dict):
         raise ValueError("record must be a JSON object")
 
-    status = payload["status"]
-    if status not in VALID_REVIEW_STATUSES:
-        raise ValueError(f"invalid review status {status!r}; expected one of {sorted(VALID_REVIEW_STATUSES)}")
+    status = _validate_review_status(payload["status"])
 
     object_urdf = payload["object_urdf"]
     if object_urdf is not None and not isinstance(object_urdf, str):
@@ -204,6 +205,14 @@ def _require_str(value: object, field: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
     return value
+
+
+def _validate_review_status(status: object) -> str:
+    if not isinstance(status, str):
+        raise ValueError("status must be a string")
+    if status not in VALID_REVIEW_STATUSES:
+        raise ValueError(f"invalid review status {status!r}; expected one of {sorted(VALID_REVIEW_STATUSES)}")
+    return status
 
 
 def _normalize_path(path: str | Path) -> Path:

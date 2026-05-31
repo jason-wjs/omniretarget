@@ -156,6 +156,14 @@ def test_invalid_review_status_is_rejected(tmp_path: Path) -> None:
         append_review_record(tmp_path / "review.jsonl", sample, status="approved", note="")
 
 
+def test_non_string_review_status_is_rejected(tmp_path: Path) -> None:
+    _make_sample(tmp_path, "mid_climbing", "mid_blocks_001_dm")
+    sample = discover_playlist(output_root=tmp_path, dataset="mid_climbing")[0]
+
+    with pytest.raises(ValueError, match="status"):
+        append_review_record(tmp_path / "review.jsonl", sample, status=[], note="")  # type: ignore[arg-type]
+
+
 def test_review_note_and_explicit_timestamp_must_be_strings(tmp_path: Path) -> None:
     _make_sample(tmp_path, "mid_climbing", "mid_blocks_001_dm")
     sample = discover_playlist(output_root=tmp_path, dataset="mid_climbing")[0]
@@ -180,6 +188,14 @@ def test_first_unreviewed_index_wraps_around(tmp_path: Path) -> None:
     latest = {"b_task": append_review_record(tmp_path / "review.jsonl", samples[1], status="pass", note="")}
 
     assert first_unreviewed_index(samples, latest, start=2) == 0
+
+
+def test_first_unreviewed_index_starts_after_current_sample(tmp_path: Path) -> None:
+    _make_sample(tmp_path, "mid_climbing", "a_task")
+    _make_sample(tmp_path, "mid_climbing", "b_task")
+    samples = discover_playlist(output_root=tmp_path, dataset="mid_climbing")
+
+    assert first_unreviewed_index(samples, {}, start=0) == 1
 
 
 def test_first_unreviewed_index_returns_start_when_all_reviewed(tmp_path: Path) -> None:
@@ -225,6 +241,27 @@ def test_invalid_review_jsonl_status_reports_file_and_line(tmp_path: Path) -> No
     )
 
     with pytest.raises(ValueError, match=r"review\.jsonl:1.*invalid"):
+        load_latest_reviews(review_file)
+
+
+def test_non_string_review_jsonl_status_reports_file_and_line(tmp_path: Path) -> None:
+    review_file = tmp_path / "review.jsonl"
+    review_file.write_text(
+        json.dumps(
+            {
+                "task": "a_task",
+                "status": [],
+                "note": "",
+                "qpos_npz": str(tmp_path / "a_task_original.npz"),
+                "object_urdf": None,
+                "timestamp": "2026-05-31T12:00:00+08:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=r"review\.jsonl:1.*status"):
         load_latest_reviews(review_file)
 
 
