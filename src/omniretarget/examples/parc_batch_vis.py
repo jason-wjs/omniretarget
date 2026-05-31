@@ -82,6 +82,17 @@ def config_from_args(args: argparse.Namespace) -> ParcBatchVisConfig:
 def _load_qpos(npz_path: Path) -> tuple[np.ndarray, int]:
     data = np.load(npz_path, allow_pickle=True)
     qpos = data["qpos"]
+    if not isinstance(qpos, np.ndarray):
+        raise ValueError(f"qpos must be a numpy array: {npz_path}")
+    if qpos.ndim != 2:
+        raise ValueError(f"qpos must be 2D with shape (frames, columns): {npz_path} has shape {qpos.shape}")
+    if qpos.shape[0] <= 0:
+        raise ValueError(f"qpos must contain at least one frame: {npz_path} has shape {qpos.shape}")
+    if qpos.shape[1] < 7:
+        raise ValueError(
+            f"qpos must contain at least 7 columns for base position and quaternion: "
+            f"{npz_path} has shape {qpos.shape}"
+        )
     fps = int(data["fps"]) if "fps" in data else 30
     return qpos, fps
 

@@ -5,9 +5,10 @@ import os
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import pytest
 
-from omniretarget.examples.parc_batch_vis import build_arg_parser, config_from_args
+from omniretarget.examples.parc_batch_vis import _load_qpos, build_arg_parser, config_from_args
 from omniretarget.parc_process.batch_vis import (
     append_review_record,
     default_review_file,
@@ -286,6 +287,33 @@ def test_missing_review_jsonl_field_reports_file_and_line(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match=r"review\.jsonl:1"):
         load_latest_reviews(review_file)
+
+
+@pytest.mark.parametrize(
+    ("qpos", "message"),
+    [
+        (np.zeros((0, 7)), "at least one frame"),
+        (np.zeros(7), "2D"),
+        (np.zeros((1, 6)), "at least 7 columns"),
+    ],
+)
+def test_load_qpos_rejects_invalid_shapes(tmp_path: Path, qpos: np.ndarray, message: str) -> None:
+    npz_path = tmp_path / "bad_qpos.npz"
+    np.savez(npz_path, qpos=qpos, fps=np.array(30))
+
+    with pytest.raises(ValueError, match=message):
+        _load_qpos(npz_path)
+
+
+def test_load_qpos_returns_valid_qpos_and_fps(tmp_path: Path) -> None:
+    npz_path = tmp_path / "valid_qpos.npz"
+    qpos = np.zeros((2, 7))
+    np.savez(npz_path, qpos=qpos, fps=np.array(60))
+
+    loaded_qpos, fps = _load_qpos(npz_path)
+
+    np.testing.assert_array_equal(loaded_qpos, qpos)
+    assert fps == 60
 
 
 def test_parc_batch_vis_cli_defaults_review_file(tmp_path: Path) -> None:
