@@ -3,36 +3,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypedDict
 
 import numpy as np
 
 from omniretarget.path_utils import package_path
-
-
-# Default values per robot type
-class RobotDefaults(TypedDict):
-    robot_dof: int
-    robot_height: float
-    object_name: str
-
-
-_ROBOT_DEFAULTS: dict[str, RobotDefaults] = {
-    "g1": {"robot_dof": 29, "robot_height": 1.32, "object_name": "ground"},
-    "t1": {"robot_dof": 23, "robot_height": 1.2, "object_name": "ground"},
-    "adam_pro": {"robot_dof": 29, "robot_height": 1.67, "object_name": "ground"},
-}
+from omniretarget.specs.robots import ROBOT_DEFAULTS as _ROBOT_DEFAULTS
+from omniretarget.specs.robots import (
+    RobotDefaults,
+    foot_sticking_links,
+    manual_cost,
+    manual_lb,
+    manual_ub,
+    nominal_tracking_indices,
+    validate_robot_type,
+)
 
 
 def _validate_robot_type(robot_type: str) -> None:
     """Validate that robot_type exists in _ROBOT_DEFAULTS."""
-    if robot_type not in _ROBOT_DEFAULTS:
-        available = ", ".join(sorted(_ROBOT_DEFAULTS.keys()))
-        raise ValueError(
-            f"Invalid robot_type: '{robot_type}'. "
-            f"Available robot types: {available}. "
-            f"Add your robot to _ROBOT_DEFAULTS in config_types/robot.py"
-        )
+    validate_robot_type(robot_type)
 
 
 @dataclass(frozen=True)
@@ -122,44 +111,7 @@ class RobotConfig:
         """Get foot sticking links - use override if provided, else use robot_type default."""
         if self.foot_sticking_links is not None:
             return self.foot_sticking_links
-
-        if self.robot_type == "g1":
-            return [
-                "left_ankle_roll_sphere_1_link",
-                "right_ankle_roll_sphere_1_link",
-                "left_ankle_roll_sphere_2_link",
-                "right_ankle_roll_sphere_2_link",
-                "left_ankle_roll_sphere_3_link",
-                "right_ankle_roll_sphere_3_link",
-                "left_ankle_roll_sphere_4_link",
-                "right_ankle_roll_sphere_4_link",
-            ]
-        if self.robot_type == "t1":
-            return [
-                "left_foot_sphere_1_link",
-                "right_foot_sphere_1_link",
-                "left_foot_sphere_2_link",
-                "right_foot_sphere_2_link",
-                "left_foot_sphere_3_link",
-                "right_foot_sphere_3_link",
-                "left_foot_sphere_4_link",
-                "right_foot_sphere_4_link",
-                "left_foot_sphere_5_link",
-                "right_foot_sphere_5_link",
-            ]
-        if self.robot_type == "adam_pro":
-            # Use foot patch markers (1..4) for sticking; keep sphere_5 as toe target for retargeting mapping.
-            return [
-                "left_foot_sphere_1_link",
-                "right_foot_sphere_1_link",
-                "left_foot_sphere_2_link",
-                "right_foot_sphere_2_link",
-                "left_foot_sphere_3_link",
-                "right_foot_sphere_3_link",
-                "left_foot_sphere_4_link",
-                "right_foot_sphere_4_link",
-            ]
-        raise ValueError(f"Invalid robot type: {self.robot_type}")
+        return foot_sticking_links(self.robot_type)
 
     FOOT_STICKING_LINKS = property(
         _foot_sticking_links,
@@ -170,53 +122,7 @@ class RobotConfig:
         """Get manual lower bounds."""
         if self.manual_lb is not None:
             return self.manual_lb
-
-        base: dict[str, float] = {"3": -1.0, "4": -1.0, "5": -1.0, "6": -1.0}  # quaternion bounds
-
-        if self.robot_type == "g1":
-            base.update(
-                {
-                    "20": -0.3,  # waist roll
-                    "21": -0.1,  # waist pitch
-                    "26": -0.1,  # right wrist
-                    "27": -0.1,
-                    "28": -0.05,
-                    "33": -0.1,  # left wrist
-                    "34": -0.1,
-                    "35": -0.05,
-                }
-            )
-        elif self.robot_type == "adam_pro":
-            # qpos indices:
-            #   left knee: 10, right knee: 16
-            #   waist: 19=waistRoll, 20=waistPitch, 21=waistYaw
-            #   left arm: 22/23/24=shoulder pitch/roll/yaw, 25=elbow, 26/27/28=wrist yaw/pitch/roll
-            #   right arm: 29/30/31=shoulder pitch/roll/yaw, 32=elbow, 33/34/35=wrist yaw/pitch/roll
-            base.update(
-                {
-                    "10": 0.12,
-                    "16": 0.12,
-                    "19": -0.18,
-                    "20": -0.35,
-                    "21": -0.829,
-                    "22": -2.8,
-                    "23": -0.5,
-                    "24": -2.0,
-                    "25": -2.496,
-                    "26": -0.6,
-                    "27": -0.45,
-                    "28": -0.45,
-                    "29": -2.8,
-                    "30": -2.4,
-                    "31": -2.0,
-                    "32": -2.496,
-                    "33": -0.6,
-                    "34": -0.45,
-                    "35": -0.45,
-                }
-            )
-
-        return base
+        return manual_lb(self.robot_type)
 
     MANUAL_LB = property(_manual_lb, doc="Get manual lower bounds.")
 
@@ -224,51 +130,7 @@ class RobotConfig:
         """Get manual upper bounds."""
         if self.manual_ub is not None:
             return self.manual_ub
-
-        base: dict[str, float] = {"3": 1.0, "4": 1.0, "5": 1.0, "6": 1.0}  # quaternion bounds
-
-        if self.robot_type == "g1":
-            base.update(
-                {
-                    "20": 0.3,  # waist roll
-                    "25": 1.4,  # right elbow
-                    "26": 0.2,  # right wrist
-                    "27": 0.3,
-                    "28": 0.05,
-                    "32": 1.4,  # elbow
-                    "33": 0.2,  # left wrist
-                    "34": 0.3,
-                    "35": 0.05,
-                }
-            )
-        elif self.robot_type == "adam_pro":
-            # qpos indices:
-            #   waist: 19=waistRoll, 20=waistPitch, 21=waistYaw
-            #   left arm: 22/23/24=shoulder pitch/roll/yaw, 25=elbow, 26/27/28=wrist yaw/pitch/roll
-            #   right arm: 29/30/31=shoulder pitch/roll/yaw, 32=elbow, 33/34/35=wrist yaw/pitch/roll
-            base.update(
-                {
-                    "19": 0.18,
-                    "20": 0.75,
-                    "21": 0.829,
-                    "22": 1.8,
-                    "23": 2.4,
-                    "24": 2.0,
-                    "25": -0.1,
-                    "26": 0.6,
-                    "27": 0.45,
-                    "28": 0.45,
-                    "29": 1.8,
-                    "30": 0.5,
-                    "31": 2.0,
-                    "32": -0.1,
-                    "33": 0.6,
-                    "34": 0.45,
-                    "35": 0.45,
-                }
-            )
-
-        return base
+        return manual_ub(self.robot_type)
 
     MANUAL_UB = property(_manual_ub, doc="Get manual upper bounds.")
 
@@ -276,33 +138,7 @@ class RobotConfig:
         """Get manual cost weights."""
         if self.manual_cost is not None:
             return self.manual_cost
-
-        if self.robot_type == "g1":
-            return {"19": 0.2, "20": 0.2}  # waist yaw, waist roll
-        if self.robot_type == "adam_pro":
-            # qpos indices:
-            #   left knee: 10, right knee: 16
-            #   waist: 19=waistRoll, 20=waistPitch, 21=waistYaw
-            #   left arm: 22/23/24=shoulder pitch/roll/yaw, 25=elbow
-            #   right arm: 29/30/31=shoulder pitch/roll/yaw, 32=elbow
-            return {
-                # Keep these low: MANUAL_COST biases joints toward 0 rad;
-                # lower bounds above are the primary anti-hyperextension safeguard.
-                "10": 0.03,
-                "16": 0.03,
-                "19": 0.2,
-                "20": 0.2,
-                "21": 0.2,
-                "22": 0.05,
-                "23": 0.05,
-                "24": 0.05,
-                "25": 0.1,
-                "29": 0.05,
-                "30": 0.05,
-                "31": 0.05,
-                "32": 0.1,
-            }
-        return {}
+        return manual_cost(self.robot_type)
 
     MANUAL_COST = property(_manual_cost, doc="Get manual cost weights.")
 
@@ -310,16 +146,7 @@ class RobotConfig:
         """Get nominal tracking indices."""
         if self.nominal_tracking_indices is not None:
             return self.nominal_tracking_indices
-
-        if self.robot_type == "g1":
-            return np.arange(19)
-        if self.robot_type == "t1":
-            return np.concatenate([np.arange(7), np.arange(11, 23)])
-        if self.robot_type == "adam_pro":
-            # Lower-body (0..11) + waist (12..14).
-            return np.arange(15)
-        # Default: return empty array if robot type not defined (nominal tracking not used)
-        return np.array([], dtype=int)
+        return nominal_tracking_indices(self.robot_type)
 
     NOMINAL_TRACKING_INDICES = property(
         _nominal_tracking_indices,

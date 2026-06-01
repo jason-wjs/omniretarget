@@ -3,32 +3,29 @@ from __future__ import annotations
 import time
 from types import ModuleType
 
-import cvxpy as cp  # type: ignore[import-not-found]
 import mujoco  # type: ignore[import-not-found]
 import numpy as np
-import trimesh
-import viser  # type: ignore[import-not-found]
-import yourdfpy  # type: ignore[import-untyped]
-from scipy import sparse as sp  # type: ignore[import-untyped]
 from scipy.spatial.transform import Rotation  # type: ignore[import-untyped]
-from tqdm import tqdm
-from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
-# Import with type ignore for mypy compatibility
-from omniretarget.src.mujoco_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
-    _world_mesh_from_geom,
+from omniretarget.mujoco.collision import (  # noqa: E402
+    geom_distance,
+    geom_pair_allowed_for_object_or_ground,
+    geometry_name,
+    geometry_names,
+    prefilter_pairs_with_mj_collision,
+    should_enforce_non_penetration_pair,
 )
-from omniretarget.src.utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
-    calculate_laplacian_coordinates,
-    calculate_laplacian_matrix,
-    create_interaction_mesh,
-    get_adjacency_list,
-    transform_points_local_to_world,
-    transform_points_world_to_local,
+from omniretarget.mujoco.kinematics import (  # noqa: E402
+    body_id,
+    link_positions,
+    point_jacobian_qpos,
+    qdot_to_qvel_transform,
+    world_to_body_frame,
 )
-from omniretarget.src.viser_utils import (  # type: ignore[import-not-found,no-redef]  # noqa: E402
-    create_motion_control_sliders,
-)
+from omniretarget.mujoco.model_state import load_model_state  # noqa: E402
+from omniretarget.solver import optimizer as frame_optimizer  # noqa: E402
+from omniretarget.solver.frame_problem import FrameProblem  # noqa: E402
+from omniretarget.visualization import viser_adapter  # noqa: E402
 
 
 class InteractionMeshRetargeter:
@@ -103,23 +100,17 @@ class InteractionMeshRetargeter:
         if self.visualize:
             self._setup_visualization()
 
-        # Load Mujoco model
-        if self.object_name == "ground":
-            robot_xml_path = self.robot_model_path.replace(".urdf", ".xml")
-        elif self.object_name == "multi_boxes":
-            robot_xml_path = self.task_constants.SCENE_XML_FILE
-        else:
-            robot_xml_path = self.robot_model_path.replace(".urdf", "_w_" + self.object_name + ".xml")
+        model_state = load_model_state(
+            robot_model_path=self.robot_model_path,
+            object_name=self.object_name,
+            robot_dof=self.task_constants.ROBOT_DOF,
+            scene_xml_file=getattr(self.task_constants, "SCENE_XML_FILE", None),
+        )
+        self.robot_model = model_state.model
+        print("Loading robot model from: ", model_state.robot_xml_path)
 
-        self.robot_model = mujoco.MjModel.from_xml_path(robot_xml_path)
-        print("Loading robot model from: ", robot_xml_path)
-
-        self.robot_data = mujoco.MjData(self.robot_model)
-
-        if self.robot_data.qpos.shape[0] > 7 + self.task_constants.ROBOT_DOF:
-            self.has_dynamic_object = True
-        else:
-            self.has_dynamic_object = False
+        self.robot_data = model_state.data
+        self.has_dynamic_object = model_state.has_dynamic_object
 
         self.nq = self.robot_model.nq
 
@@ -163,90 +154,14 @@ class InteractionMeshRetargeter:
 
     def _setup_visualization(self):
         """Setup Viser visualization components."""
-        self.server = viser.ViserServer()
-
-        # 1) Ensure a world frame exists (absolute path!)
-        try:
-            self.server.scene.add_frame("/world", show_axes=False)
-        except Exception:
-            print("Starting viser")
-
-        # Create parent frames for robot and object
-        self.robot_base = self.server.scene.add_frame("/world/robot", show_axes=False)
-
-        print("robot_model_path: ", self.robot_model_path)
-
-        # Load robot URDF
-        self.robot_urdf = yourdfpy.URDF.load(
-            self.robot_model_path,
-            load_meshes=True,
-            build_scene_graph=True,
-        )
-
-        print("Viser using robot URDF: ", self.robot_model_path)
-
-        # Create ViserUrdf instance for robot, attaching it to the robot_base frame
-        self.viser_robot = ViserUrdf(
-            self.server,
-            urdf_or_path=self.robot_urdf,
-            root_node_name="/world/robot",  # This links to the robot_base frame we created
-        )
-
-        # Similarly for object
-        if self.object_model_path:
-            self.object_base = self.server.scene.add_frame("/world/object", show_axes=False)
-
-            self.object_urdf = yourdfpy.URDF.load(
-                self.object_model_path,
-                load_meshes=True,
-                build_scene_graph=True,
-            )
-
-            # Create ViserUrdf instance for object, attaching it to the object_base frame
-            self.viser_object = ViserUrdf(
-                self.server,
-                urdf_or_path=self.object_urdf,
-                root_node_name="/world/object",  # This links to the object_base frame we created
-            )
-            print("Viser using object URDF: ", self.object_model_path)
-
-        else:
-            self.viser_object = None
-
-        # Check the number of actuated joints and their names
-        robot_joint_limits = self.viser_robot.get_actuated_joint_limits()
-        print("\nRobot joints:")
-        print("Number of actuated joints:", len(robot_joint_limits))
-        print("Joint names:", list(robot_joint_limits.keys()))
-
-        # Initialize robot with this configuration
-        robot_initial_config = np.zeros(len(robot_joint_limits))
-        self.viser_robot.update_cfg(robot_initial_config)
-
-        # Add grid
-        self.server.scene.add_grid(
-            "/world/grid",
-            width=8,
-            height=8,
-            position=(0.0, 0.0, 0.0),
-        )
+        viser_adapter.setup_visualization(self)
 
     def draw_mesh_from_geom(self, model, data, geom_id, geom_name, name="/mesh", color=(50, 150, 255), opacity=0.5):
         """
         Draw a single MuJoCo mesh geom (already baked to world coords) in viser.
         color is [0, 255] RGB ints; opacity is [0,1].
         """
-        if not hasattr(self, "server"):
-            return
-        V, F = _world_mesh_from_geom(model, data, geom_id, geom_name)
-        self.server.scene.add_mesh_simple(
-            name,
-            vertices=V.astype(np.float32),
-            faces=F.astype(np.int32),
-            position=(0.0, 0.0, 0.0),  # already world-frame
-            color=tuple(int(c) for c in color),
-            opacity=float(opacity),
-        )
+        return viser_adapter.draw_mesh_from_geom(self, model, data, geom_id, geom_name, name, color, opacity)
 
     def draw_mesh_pair_with_contact(
         self,
@@ -267,23 +182,21 @@ class InteractionMeshRetargeter:
         Draw two meshes and (optionally) a contact/query segment.
         Uses the existing self.draw_keypoints(...) to visualize points.
         """
-        # Note: sometime geom does not have mesh, mesh_id will be -1
-        if int(model.geom_dataid[geom_id1]) == -1 or int(model.geom_dataid[geom_id2]) == -1:
-            return
-
-        base = f"/{group_name}"
-        # meshes
-        self.draw_mesh_from_geom(model, data, geom_id1, geom1_name, name=f"{base}/mesh1", color=color1, opacity=opacity)
-        self.draw_mesh_from_geom(model, data, geom_id2, geom2_name, name=f"{base}/mesh2", color=color2, opacity=opacity)
-
-        # contact points (q: green, c: red) via your draw_keypoints
-        if fromto is not None:
-            q = np.asarray(fromto[:3], dtype=float)
-            c = np.asarray(fromto[3:], dtype=float)
-
-            # your existing helper (rgba expects floats 0..1)
-            self.draw_keypoints(q, name=f"{group_name}_q", rgba=(0.0, 1.0, 0.0, 1.0))
-            self.draw_keypoints(c, name=f"{group_name}_c", rgba=(1.0, 0.0, 0.0, 1.0))
+        return viser_adapter.draw_mesh_pair_with_contact(
+            self,
+            model,
+            data,
+            geom_id1,
+            geom_id2,
+            geom1_name,
+            geom2_name,
+            fromto=fromto,
+            group_name=group_name,
+            color1=color1,
+            color2=color2,
+            opacity=opacity,
+            show_segment=show_segment,
+        )
 
     def retarget_motion(
         self,
@@ -314,161 +227,20 @@ class InteractionMeshRetargeter:
         Returns:
             tuple: (retargeted_motions, obj_pts_demo_list, obj_pts_list, tetrahedra)
         """
-        num_frames = human_joint_motions.shape[0]
-        if q_nominal_list is not None:
-            q_locked_list = q_nominal_list
-        else:
-            q_locked_list = np.zeros((num_frames, self.nq))
-            q_locked_list[0, self.q_a_indices] = q_a_init
+        from omniretarget.solver import trajectory as trajectory_solver
 
-        if self.has_dynamic_object:
-            q_locked_list[:, -7:] = object_poses_augmented
-        q = np.copy(q_locked_list[0])
-        retargeted_motions = [q]
-
-        tetrahedra = []
-        obj_pts_demo_list = []  # scaled object pts
-        obj_pts_list = []  # original size object pts
-
-        print(f"\nStarting motion retargeting for {num_frames} frames...")
-
-        with tqdm(range(num_frames)) as pbar:
-            for i in pbar:
-                # Get object poses and transform points
-                object_quat_demo = object_poses[i, 3:]
-                object_trans_demo = object_poses[i, :3]
-
-                # Get human joint positions and create interaction mesh in object frame
-                human_mapped_joints = human_joint_motions[i, self.smplh_mapped_joint_indices]
-
-                if self.object_name == "ground":
-                    human_mapped_joints_in_object = human_mapped_joints
-                else:
-                    human_mapped_joints_in_object = transform_points_world_to_local(
-                        object_quat_demo, object_trans_demo, human_mapped_joints
-                    )
-
-                source_vertices, source_tetrahedra = create_interaction_mesh(
-                    np.vstack([human_mapped_joints_in_object, object_points_local_demo])
-                )
-                tetrahedra.append(source_tetrahedra)
-
-                if self.debug:
-                    # Only for visualization
-                    object_quat = object_poses_augmented[i, 3:]
-                    object_trans = object_poses_augmented[i, :3]
-                    obj_pts_demo = transform_points_local_to_world(
-                        object_quat_demo, object_trans_demo, object_points_local_demo
-                    )
-                    obj_pts = transform_points_local_to_world(object_quat, object_trans, object_points_local)
-
-                    obj_pts_demo_list.append(obj_pts_demo)
-                    obj_pts_list.append(obj_pts)
-                    human_kpts_handle_list = self.draw_keypoints(human_mapped_joints, name="human_kpts")  # 15 X 3
-                    obj_kpts_demo_handle_list = self.draw_keypoints(
-                        obj_pts_demo, name="object_demo_kpts", rgba=(1, 0, 0, 1)
-                    )  # 100 X 3
-                    obj_kpts_handle_list = self.draw_keypoints(
-                        obj_pts, name="object_kpts", rgba=(0, 1, 1, 1)
-                    )  # 100 X 3
-
-                # Create adjacency list and calculate target Laplacian coordinates
-                adj_list = get_adjacency_list(source_tetrahedra, len(source_vertices))
-                target_laplacian = calculate_laplacian_coordinates(source_vertices, adj_list)
-
-                # Run optimization
-                if original:
-                    w_nominal_tracking = self.w_nominal_tracking_init
-                else:
-                    w_nominal_tracking = self.w_nominal_tracking_init * np.exp(-i / self.nominal_tracking_tau)
-
-                q, cost = self.iterate(
-                    q_locked=q_locked_list[i],
-                    q_n=q,
-                    q_t_last=retargeted_motions[-1],
-                    target_laplacian=target_laplacian,
-                    adj_list=adj_list,
-                    obj_pts_local=object_points_local,
-                    foot_sticking=foot_sticking_sequences[i],
-                    w_nominal_tracking=w_nominal_tracking,
-                    q_a_nominal=(q_nominal_list[i, self.q_a_indices] if q_nominal_list is not None else None),
-                    init_t=i == 0,
-                    n_iter=50 if i == 0 else 10,
-                )
-                if self.debug:
-                    robot_link_positions = self._get_robot_link_positions(
-                        q, self.laplacian_match_links.values()
-                    )  # 15 X 3
-                    robot_kpts_handle_list = self.draw_keypoints(
-                        robot_link_positions, name="robot_kpts", rgba=(0, 1, 0, 1)
-                    )
-
-                retargeted_motions.append(q)
-                if self.visualize and self.debug:
-                    self.draw_q(q)
-
-                pbar.set_postfix(cost=cost)
-
-        # Remove previous debug visualization
-        if self.debug:
-            for handle in human_kpts_handle_list:
-                handle.remove()
-            human_kpts_handle_list.clear()
-
-            for handle in obj_kpts_demo_handle_list:
-                handle.remove()
-            obj_kpts_demo_handle_list.clear()
-
-            for handle in obj_kpts_handle_list:
-                handle.remove()
-            obj_kpts_handle_list.clear()
-
-            for handle in robot_kpts_handle_list:
-                handle.remove()
-            robot_kpts_handle_list.clear()
-
-        # Save results
-        np.savez(
-            dest_res_path,
-            qpos=np.array(retargeted_motions)[1:],
-            human_joints=human_joint_motions,
-            fps=30,
-            cost=cost,
-        )
-        print("Saving results to path:", dest_res_path)
-
-        if self.visualize:
-            robot_dof = len(self.viser_robot.get_actuated_joint_limits())
-
-            create_motion_control_sliders(
-                server=self.server,
-                viser_robot=self.viser_robot,
-                robot_base_frame=self.robot_base,
-                motion_sequence=np.asarray(retargeted_motions)[1:],
-                robot_dof=robot_dof,
-                viser_object=self.viser_object,
-                object_base_frame=getattr(self, "object_base", None) if self.viser_object else None,
-                contains_object_in_qpos=bool(self.viser_object) and bool(self.has_dynamic_object),
-                initial_fps=30,
-                initial_interp_mult=2,
-                loop=False,
-            )
-
-            # 4) optional: visibility toggle
-            with self.server.gui.add_folder("Visibility"):
-                show_meshes_cb = self.server.gui.add_checkbox("Show meshes", self.viser_robot.show_visual)
-
-                @show_meshes_cb.on_update
-                def _(_):
-                    self.viser_robot.show_visual = show_meshes_cb.value
-                    if self.viser_object is not None:
-                        self.viser_object.show_visual = show_meshes_cb.value
-
-        return (
-            np.array(retargeted_motions)[1:],
-            obj_pts_demo_list,
-            obj_pts_list,
-            tetrahedra,
+        return trajectory_solver.solve_trajectory(
+            self,
+            human_joint_motions=human_joint_motions,
+            object_poses=object_poses,
+            object_poses_augmented=object_poses_augmented,
+            object_points_local_demo=object_points_local_demo,
+            object_points_local=object_points_local,
+            foot_sticking_sequences=foot_sticking_sequences,
+            q_a_init=q_a_init,
+            q_nominal_list=q_nominal_list,
+            original=original,
+            dest_res_path=dest_res_path,
         )
 
     def solve_single_iteration(
@@ -497,166 +269,32 @@ class InteractionMeshRetargeter:
             obj_original: the original object pose (used for contact matching).
             init_t: the current time step is the first time step.
         """
-        assert len(q_a_n_last) == self.nq_a
-
-        # Lock the object pose and set the current robot slice to last accepted solution
-        q = np.copy(q_locked)
-        q[self.q_a_indices] = q_a_n_last
-
-        # Compute Laplacian pieces
-        J_OC_dict, p_OC_dict, _ = self._calc_manipulator_jacobians(
-            q, links=self.laplacian_match_links, obj_frame=(self.object_name != "ground")
+        solution = frame_optimizer.solve_frame_problem(
+            self,
+            FrameProblem(
+                q_locked=q_locked,
+                q_a_n_last=q_a_n_last,
+                q_t_last=q_t_last,
+                target_laplacian=target_laplacian,
+                adj_list=adj_list,
+                obj_pts_local=obj_pts_local,
+                foot_sticking=foot_sticking,
+                w_nominal_tracking=w_nominal_tracking,
+                q_a_nominal=q_a_nominal,
+                verbose=verbose,
+                init_t=init_t,
+            ),
         )
-        robot_link_keys = list(self.laplacian_match_links.keys())
-        V_r = len(robot_link_keys)
-        V_o = len(obj_pts_local)
-        V = V_r + V_o
-
-        # Stack Jacobians for robot points
-        J_V = np.zeros((3 * V, self.nq_a))
-        for i, key in enumerate(robot_link_keys):
-            J_V[3 * i : 3 * (i + 1), :] = J_OC_dict[key]
-
-        robot_pts_local = np.array([p_OC_dict[k] for k in robot_link_keys])
-        vertices = np.vstack([robot_pts_local, obj_pts_local])  # (V x 3)
-
-        L = calculate_laplacian_matrix(vertices, adj_list)  # (V x V), EXPECT SPARSE OR SMALL
-        if not sp.issparse(L):
-            L = sp.csr_matrix(L)
-
-        Kron = sp.kron(L, sp.eye(3, format="csr"), format="csr")
-        J_L = Kron @ J_V
-
-        lap0 = L @ vertices
-        lap0_vec = lap0.reshape(-1)  # (3V,)
-        target_lap_vec = target_laplacian.reshape(-1)  # (3V,)
-
-        w_v = (self.laplacian_weights * np.ones(V)).astype(float)  # (V,)
-        sqrt_w3 = np.sqrt(np.repeat(w_v, 3))
-
-        # Decision variables
-        dqa = cp.Variable(len(self.q_a_indices), name="dqa")
-        lap_var = cp.Variable(3 * V, name="laplacian")
-
-        # Constraints list
-        constraints = []
-
-        # Linear equality
-        constraints += [cp.Constant(J_L[:, self.q_a_indices]) @ dqa - lap_var == -lap0_vec]
-
-        # Foot sticking
-        if (self.q_a_init_idx < 12) and self.activate_foot_sticking:
-            J_WF_dict, p_WF_dict, _ = self._calc_manipulator_jacobians(q, links=self.foot_links, obj_frame=False)
-            _, p_WF_t_last_dict, _ = self._calc_manipulator_jacobians(q_t_last, links=self.foot_links, obj_frame=False)
-            # Identify 'left' and 'right' flags from provided keys
-            left_key = right_key = None
-            for key in foot_sticking:
-                if key.lower().startswith("l"):
-                    left_key = key
-                elif key.lower().startswith("r"):
-                    right_key = key
-            if left_key is None or right_key is None:
-                raise ValueError("foot_sticking must include one left* and one right* key")
-
-            for key, J_WF in J_WF_dict.items():
-                apply_left = ("left" in key) and foot_sticking[left_key]
-                apply_right = ("right" in key) and foot_sticking[right_key]
-                if apply_left or apply_right:
-                    p_lb = p_WF_t_last_dict[key] - p_WF_dict[key] - self.foot_sticking_tolerance
-                    p_ub = p_lb + 2 * self.foot_sticking_tolerance  # symmetric window
-
-                    Jxy = J_WF[:2, self.q_a_indices]  # (2 x nq_act)
-                    constraints += [
-                        Jxy @ dqa >= p_lb[:2],
-                        Jxy @ dqa <= p_ub[:2],
-                    ]
-
-        # Non-penetration constraints
-        Js, phis = self._update_jacobians_and_phis_from_q(q)
-        for key, phi in phis.items():
-            if not self._should_enforce_non_penetration_pair(key):
-                continue
-            Ja_n_full = Js[key]
-            Ja_n = Ja_n_full[self.q_a_indices]
-            rhs = -phi - self.penetration_tolerance
-            constraints += [Ja_n @ dqa >= rhs]
-
-        # Joint limits constraints (actuated)
-        if self.activate_joint_limits:
-            constraints += [
-                dqa >= (self.q_a_lb - q_a_n_last),
-                dqa <= (self.q_a_ub - q_a_n_last),
-            ]
-
-        # Step size constraints (Lorentz cone)
-        constraints += [cp.SOC(self.step_size, dqa)]
-
-        # Objective
-        obj_terms = []
-
-        obj_terms.append(cp.sum_squares(cp.multiply(sqrt_w3, lap_var - target_lap_vec)))
-
-        # nominal tracking for selected indices
-        if (w_nominal_tracking > 0) and (q_a_nominal is not None):
-            idx = np.array(self.track_nominal_indices, dtype=int)
-            if idx.size > 0:
-                z = dqa[idx] - (q_a_nominal[idx] - q_a_n_last[idx])
-                obj_terms.append(w_nominal_tracking * cp.sum_squares(z))
-
-        # Q_diag cost
-        Qd = np.asarray(self.Q_diag, dtype=float).reshape(-1)
-        obj_terms.append(cp.sum_squares(cp.multiply(np.sqrt(Qd), dqa + q_a_n_last)))
-
-        # Smoothness cost
-        dqa_smooth = q_t_last[self.q_a_indices] - q_a_n_last
-        if np.isscalar(self.smooth_weight):
-            obj_terms.append(self.smooth_weight * cp.sum_squares(dqa - dqa_smooth))
-        else:
-            Wsmooth = np.asarray(self.smooth_weight, dtype=float)
-            if Wsmooth.ndim == 1:
-                obj_terms.append(cp.sum_squares(cp.multiply(np.sqrt(Wsmooth), dqa - dqa_smooth)))
-            else:
-                # if a full matrix was supplied, fall back to quad_form
-                obj_terms.append(cp.quad_form(dqa - dqa_smooth, Wsmooth))
-
-        problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
-
-        # -------- Solve with Clarabel --------
-        solver_kwargs = {"verbose": verbose}
-        problem.solve(solver=cp.CLARABEL, **solver_kwargs)
-        if (problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE)) and init_t:
-            constraints = [c for c in constraints if not isinstance(c, cp.constraints.second_order.SOC)]
-            problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
-            problem.solve(solver=cp.CLARABEL, **solver_kwargs)
-
-        if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
-            raise RuntimeError(f"CVXPY solve failed: {problem.status}")
-
-        dqa_star = dqa.value
-        cost = problem.value
-
-        q_star = np.copy(q)
-        q_star[self.q_a_indices] = dqa_star + q_a_n_last
-        q_star[3:7] /= np.linalg.norm(q_star[3:7]) + 1e-12
-
-        return q_star, cost
+        return solution.q, solution.cost
 
     def _should_enforce_non_penetration_pair(self, pair_key: tuple[int, int]) -> bool:
         """Keep ground constraints always on and gate object constraints by config."""
-        if self.activate_obj_non_penetration or self.object_name == "ground":
-            return True
-
-        if not hasattr(self, "_geom_names"):
-            return True
-
-        geom_a, geom_b = pair_key
-        geom_a_name = self._geom_names[geom_a]
-        geom_b_name = self._geom_names[geom_b]
-        involves_ground = ("ground" in geom_a_name) or ("ground" in geom_b_name)
-        if involves_ground:
-            return True
-
-        return not ((self.object_name in geom_a_name) or (self.object_name in geom_b_name))
+        return should_enforce_non_penetration_pair(
+            pair_key,
+            geom_names=getattr(self, "_geom_names", None),
+            object_name=self.object_name,
+            activate_obj_non_penetration=self.activate_obj_non_penetration,
+        )
 
     def iterate(
         self,
@@ -673,94 +311,30 @@ class InteractionMeshRetargeter:
         n_iter: int = 10,
     ):
         """Iterate the solver for multiple iterations."""
-        last_cost = np.inf
-        for _ in range(n_iter):
-            q_a_n_last = q_n[self.q_a_indices]
-            q_n, cost = self.solve_single_iteration(
-                q_locked=q_locked,
-                q_a_n_last=q_a_n_last,
-                q_t_last=q_t_last,
-                target_laplacian=target_laplacian,
-                adj_list=adj_list,
-                obj_pts_local=obj_pts_local,
-                foot_sticking=foot_sticking,
-                q_a_nominal=q_a_nominal,
-                w_nominal_tracking=w_nominal_tracking,
-                init_t=init_t,
-            )
-            if np.isclose(cost, last_cost):
-                break
-            last_cost = cost
-        return q_n, cost
+        from omniretarget.solver import trajectory as trajectory_solver
+
+        return trajectory_solver.iterate_frame(
+            self,
+            q_locked=q_locked,
+            q_n=q_n,
+            q_t_last=q_t_last,
+            target_laplacian=target_laplacian,
+            adj_list=adj_list,
+            obj_pts_local=obj_pts_local,
+            foot_sticking=foot_sticking,
+            w_nominal_tracking=w_nominal_tracking,
+            q_a_nominal=q_a_nominal,
+            init_t=init_t,
+            n_iter=n_iter,
+        )
 
     def draw_q(self, q: np.ndarray):
         """Draw a single robot configuration."""
-        # Update robot joint configurations
-        robot_joint_positions = q[7 : 7 + self.task_constants.ROBOT_DOF]
-        self.viser_robot.update_cfg(robot_joint_positions)
-
-        # Update robot base pose using set_transform
-        robot_quat = q[3:7]  # Base orientation
-        robot_pos = q[:3]  # Base position
-
-        # Update robot base frame
-        self.robot_base.position = robot_pos
-        self.robot_base.wxyz = robot_quat  # Assuming quaternion is in wxyz order
-
-        # Update object pose if it exists
-        if hasattr(self, "viser_object") and self.viser_object is not None:
-            if self.has_dynamic_object:
-                object_quat = q[-4:]
-                object_pos = q[-7:-4]
-            else:
-                object_quat = np.asarray([1, 0, 0, 0])
-                object_pos = np.zeros(3)
-
-            # Update object base frame
-            self.object_base.position = object_pos
-            self.object_base.wxyz = object_quat  # Assuming quaternion is in wxyz order
+        return viser_adapter.draw_q(self, q)
 
     def draw_keypoints(self, p, name="keypoint", rgba=(0, 0, 1, 1)):
         """Draw keypoints in visualization."""
-        if not hasattr(self, "server"):
-            return None
-
-        # Create a sphere mesh using trimesh
-        sphere = trimesh.primitives.Sphere(radius=0.02)
-        vertices = sphere.vertices
-        faces = sphere.faces
-
-        color = tuple(int(c * 255) for c in rgba[:3])
-        opacity = float(rgba[3])
-
-        kpts_handle_list = []
-
-        # Draw keypoints
-        if len(p.shape) == 1:
-            # Single point
-            kpts_handle = self.server.scene.add_mesh_simple(
-                f"/{name}",
-                vertices=vertices,
-                faces=faces,
-                position=p,
-                color=color,
-                opacity=opacity,
-            )
-            kpts_handle_list.append(kpts_handle)
-        elif len(p.shape) == 2:
-            # Multiple points
-            kpts_handle = self.server.scene.add_batched_meshes_simple(
-                f"/{name}",
-                vertices=vertices,
-                faces=faces,
-                batched_positions=p,
-                batched_wxyzs=np.tile(np.array([1, 0, 0, 0]), (p.shape[0], 1)),
-                batched_colors=color,
-                opacity=opacity,
-            )
-            kpts_handle_list.append(kpts_handle)
-
-        return kpts_handle_list
+        return viser_adapter.draw_keypoints(self, p, name=name, rgba=rgba)
 
     def visualize_motion(
         self,
@@ -772,64 +346,19 @@ class InteractionMeshRetargeter:
         dt=1 / 30,
         visualize_tetrahedra=False,
     ):
-        for i in range(len(human_joint_motions)):
-            object_pts_demo = obj_pts_demo[i]
-            object_pts = obj_pts[i]
-            self.draw_keypoints(human_joint_motions[i, self.smplh_mapped_joint_indices], name="human")
-            self.draw_keypoints(object_pts_demo, name="object_demo", rgba=(1, 0, 0, 1))
-            self.draw_keypoints(object_pts, name="object", rgba=(0, 1, 0, 1))
-            self.draw_q(retargeted_motions[i])
-            robot_link_positions = self._get_robot_link_positions(
-                retargeted_motions[i], self.laplacian_match_links.values()
-            )
-            self.draw_keypoints(robot_link_positions, name="robot", rgba=(0, 1, 0, 1))
-            input()
-            if visualize_tetrahedra:
-                self.visualize_tetrahedra(
-                    np.vstack(
-                        [
-                            human_joint_motions[i, self.smplh_mapped_joint_indices],
-                            object_pts_demo,
-                        ]
-                    ),
-                    tetrahedra[i],
-                    name="human_tetrahedra",
-                )
-                self.visualize_tetrahedra(
-                    np.vstack([robot_link_positions, object_pts]),
-                    tetrahedra[i],
-                    name="robot_tetrahedra",
-                    rgba=(0, 1, 1, 1),
-                )
-            else:
-                time.sleep(dt)
+        return viser_adapter.visualize_motion(
+            self,
+            human_joint_motions,
+            obj_pts_demo,
+            obj_pts,
+            retargeted_motions,
+            tetrahedra,
+            dt=dt,
+            visualize_tetrahedra=visualize_tetrahedra,
+        )
 
     def visualize_tetrahedra(self, vertices, tetrahedra, name="tetrahedra", color=(0, 0, 0, 1)):
-        # Convert color to 0-255 range
-        color_255 = np.array(color[:3]) * 255
-
-        # Prepare points and colors for all edges
-        points = []
-        colors = []
-
-        for tet in tetrahedra:
-            for i in range(4):
-                for j in range(i + 1, 4):
-                    u, v = tet[i], tet[j]
-                    points.extend([vertices[u], vertices[v]])
-                    colors.extend([color_255, color_255])
-
-        # Convert to numpy arrays
-        points = np.array(points)
-        colors = np.array(colors)
-
-        # Add line segments for all edges at once
-        self.server.scene.add_line_segments(
-            f"/{name}",
-            points=points,
-            colors=colors,
-            line_width=0.01,
-        )
+        return viser_adapter.visualize_tetrahedra(self, vertices, tetrahedra, name=name, color=color)
 
     def _compute_jacobian_for_contact_relative(self, geom1, geom2, geom1_name, geom2_name, fromto, dist):
         # Get closest points from fromto buffer
@@ -859,33 +388,8 @@ class InteractionMeshRetargeter:
         return nhat_BA_W @ Jc
 
     def _prefilter_pairs_with_mj_collision(self, threshold: float):
-        m, d = self.robot_model, self.robot_data
-        ngeom = m.ngeom
-
-        self._geom_names = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(ngeom)]
-
-        if not hasattr(self, "_saved_margins"):
-            self._saved_margins = np.empty_like(m.geom_margin)
-        self._saved_margins[:] = m.geom_margin
-
-        m.geom_margin[:] = threshold
-
-        # Run collision. This runs broad→narrow and fills d.contact.
-        mujoco.mj_collision(m, d)
-
-        # Collect unique candidate pairs that involve at least one masked geom
-        candidates = set()
-        for k in range(d.ncon):
-            c = d.contact[k]
-            g1, g2 = int(c.geom1), int(c.geom2)
-            if g1 < 0 or g2 < 0:
-                continue
-            candidates.add((min(g1, g2), max(g1, g2)))
-
-        # Restore margins to keep physics untouched
-        m.geom_margin[:] = self._saved_margins
-
-        return candidates
+        self._geom_names = geometry_names(self.robot_model)
+        return prefilter_pairs_with_mj_collision(self.robot_model, self.robot_data, threshold)
 
     def _update_jacobians_and_phis_from_q(self, q: np.ndarray):
         self.robot_data.qpos[:] = q
@@ -899,34 +403,13 @@ class InteractionMeshRetargeter:
         candidates = self._prefilter_pairs_with_mj_collision(threshold)
 
         Js, phis = {}, {}
-        fromto = np.zeros(6, dtype=float)
-
         # 2) Precise distance only on candidates (early-exit at threshold)
-        contype, conaff = m.geom_contype, m.geom_conaffinity
-
-        def masks_ok(g1, g2):
-            if contype[g1] == 0 and conaff[g1] == 0:
-                return False
-            if contype[g2] == 0 and conaff[g2] == 0:
-                return False
-            if self.object_name in self._geom_names[g1] and "ground" in self._geom_names[g2]:
-                return False
-            if "ground" in self._geom_names[g1] and self.object_name in self._geom_names[g2]:
-                return False
-            return (
-                self.object_name in self._geom_names[g1]
-                or self.object_name in self._geom_names[g2]
-                or "ground" in self._geom_names[g1]
-                or "ground" in self._geom_names[g2]
-            )
-
         for g1, g2 in candidates:
             # Optional: keep your own filters here (e.g., skip object-ground, only keep interaction with object/ground)
-            if not masks_ok(g1, g2):
+            if not geom_pair_allowed_for_object_or_ground(m, self._geom_names, self.object_name, g1, g2):
                 continue
 
-            fromto[:] = 0.0
-            dist = mujoco.mj_geomDistance(m, d, g1, g2, threshold, fromto)
+            dist, fromto = geom_distance(m, d, g1, g2, threshold)
             if dist <= threshold:
                 J_rel = self._compute_jacobian_for_contact_relative(
                     m.geom(g1), m.geom(g2), self._geom_names[g1], self._geom_names[g2], fromto, dist
@@ -942,14 +425,11 @@ class InteractionMeshRetargeter:
 
     def _world_to_body_frame(self, p_w: np.ndarray, body_idx: int) -> np.ndarray:
         """Transform point from world frame to body frame."""
-        p_w = np.asarray(p_w).reshape(3)
-        body_pos = self.robot_data.xpos[body_idx].reshape(3)
-        body_mat = self.robot_data.xmat[body_idx].reshape(3, 3)
-        return body_mat.T @ (p_w - body_pos)
+        return world_to_body_frame(self.robot_data, p_w, body_idx)
 
     def _get_geometry_name(self, geom_id: int) -> str:
         """Get geometry name from ID."""
-        return mujoco.mj_id2name(self.robot_model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
+        return geometry_name(self.robot_model, geom_id)
 
     def _build_transform_qdot_to_qvel_fast(self, use_world_omega=True):
         """
@@ -960,80 +440,12 @@ class InteractionMeshRetargeter:
 
         If use_world_omega=False, uses BODY-omega mapping (for debugging).
         """
-        nq, nv = self.robot_model.nq, self.robot_model.nv
-        T = np.zeros((nv, nq), dtype=float)
-
-        # ---- root free joint (assumed joint 0) ----
-        j0 = 0
-        assert self.robot_model.jnt_type[j0] == mujoco.mjtJoint.mjJNT_FREE
-        qadr = self.robot_model.jnt_qposadr[j0]  # 0
-        dadr = self.robot_model.jnt_dofadr[j0]  # 0
-
-        # Linear block: v_lin = xyz_dot
-        T[dadr : dadr + 3, qadr : qadr + 3] = np.eye(3)
-
-        # Angular block: ω_* = 2 * E_*(q) * quat_dot
-        w, x, y, z = self.robot_data.qpos[qadr + 3 : qadr + 7]
-
-        def get_e_world(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, qz, -qy],
-                    [-qy, -qz, qw, qx],
-                    [-qz, qy, -qx, qw],
-                ]
-            )
-
-        def get_e_body(qw, qx, qy, qz):
-            return np.array(
-                [
-                    [-qx, qw, -qz, qy],
-                    [-qy, qz, qw, -qx],
-                    [-qz, -qy, qx, qw],
-                ]
-            )
-
-        E_fn = get_e_world if use_world_omega else get_e_body
-
-        # ---- FREE joint #1 (human/root): use model addresses, but this should be the first joint ----
-        j_free1 = 0
-        assert self.robot_model.jnt_type[j_free1] == mujoco.mjtJoint.mjJNT_FREE
-        qadr1 = int(self.robot_model.jnt_qposadr[j_free1])  # expect 0
-        dadr1 = int(self.robot_model.jnt_dofadr[j_free1])  # start of its 6 qvel dofs
-
-        qw, qx, qy, qz = self.robot_data.qpos[qadr1 + 3 : qadr1 + 7]
-        E1 = 2.0 * E_fn(qw, qx, qy, qz)
-        # linear-first: v_W = rdot, ω_W = 2E(q) * quat_dot
-        T[dadr1 + 0 : dadr1 + 3, qadr1 + 0 : qadr1 + 3] = np.eye(3)  # v block
-        T[dadr1 + 3 : dadr1 + 6, qadr1 + 3 : qadr1 + 7] = E1  # ω block
-
-        if self.has_dynamic_object:
-            # ---- FREE joint #2 (object): assume it's the last FREE joint; fill its 6x7 block ----
-            # Find it by type (safer than hardcoding tail indices)
-            free_joints = [
-                j for j in range(self.robot_model.njnt) if self.robot_model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE
-            ]
-            assert len(free_joints) >= 2, "Expected two FREE joints (human + object)."
-            j_free2 = free_joints[1]  # second FREE joint
-            qadr2 = int(self.robot_model.jnt_qposadr[j_free2])  # expect nq-7
-            dadr2 = int(self.robot_model.jnt_dofadr[j_free2])  # its 6 qvel dofs (often at nv-6)
-
-            qw, qx, qy, qz = self.robot_data.qpos[qadr2 + 3 : qadr2 + 7]
-            E2 = 2.0 * E_fn(qw, qx, qy, qz)
-            T[dadr2 + 0 : dadr2 + 3, qadr2 + 0 : qadr2 + 3] = np.eye(3)  # v block
-            T[dadr2 + 3 : dadr2 + 6, qadr2 + 3 : qadr2 + 7] = E2  # ω block
-
-        # ---- remaining hinge/slide joints: v = qdot ----
-        for j in range(1, self.robot_model.njnt):
-            jt = self.robot_model.jnt_type[j]
-            if jt in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE):
-                qa = self.robot_model.jnt_qposadr[j]
-                da = self.robot_model.jnt_dofadr[j]
-                T[da, qa] = 1.0
-            elif jt == mujoco.mjtJoint.mjJNT_BALL:
-                raise NotImplementedError("BALL joint block not implemented.")
-
-        return T
+        return qdot_to_qvel_transform(
+            self.robot_model,
+            self.robot_data,
+            has_dynamic_object=self.has_dynamic_object,
+            use_world_omega=use_world_omega,
+        )
 
     def _calc_contact_jacobian_from_point(self, body_idx: int, p_body: np.ndarray, input_world=False):
         """
@@ -1043,28 +455,14 @@ class InteractionMeshRetargeter:
         Fast analytic version: J_qdot = J_v @ T(q)
         """
 
-        p_body = np.asarray(p_body, dtype=float).reshape(3)
-
-        # 1) Make sure kinematics are current once
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        # 2) World point (3,1) for mj_jac
-        R_WB = self.robot_data.xmat[body_idx].reshape(3, 3)
-        p_WB = self.robot_data.xpos[body_idx]
-
-        if input_world:
-            p_W = p_body.astype(np.float64).reshape(3, 1)
-        else:
-            p_W = (p_WB + R_WB @ p_body).astype(np.float64).reshape(3, 1)
-
-        # 3) J_v: translational Jacobian wrt generalized velocities (3 x nv)
-        Jp = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        Jr = np.zeros((3, self.robot_model.nv), dtype=np.float64, order="C")
-        mujoco.mj_jac(self.robot_model, self.robot_data, Jp, Jr, p_W, int(body_idx))  # Jp = J_v
-
-        T = self._build_transform_qdot_to_qvel_fast()
-
-        return Jp @ T
+        return point_jacobian_qpos(
+            self.robot_model,
+            self.robot_data,
+            body_idx,
+            p_body,
+            input_world=input_world,
+            has_dynamic_object=self.has_dynamic_object,
+        )
 
     def _calc_manipulator_jacobians(
         self,
@@ -1094,15 +492,15 @@ class InteractionMeshRetargeter:
         mujoco.mj_forward(self.robot_model, self.robot_data)
 
         for name, link_name in links.items():
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
+            body_idx = body_id(self.robot_model, link_name)
 
             if point_offsets is not None:
                 pC_B = point_offsets
             else:
                 pC_B = np.zeros(3)
 
-            J = self._calc_contact_jacobian_from_point(body_id, pC_B)
-            pos_world = self.robot_data.xpos[body_id]
+            J = self._calc_contact_jacobian_from_point(body_idx, pC_B)
+            pos_world = self.robot_data.xpos[body_idx]
 
             if obj_frame:
                 p_XC = obj_rot_inv @ (pos_world - obj_pos)
@@ -1121,27 +519,10 @@ class InteractionMeshRetargeter:
 
     def _get_robot_link_positions(self, q, link_names):
         """Get robot link positions for given configuration using Mujoco."""
-        mujoco_q = q.copy()
-
-        # Set the configuration
-        if mujoco_q.shape != self.robot_data.qpos.shape:
-            self.robot_data.qpos = mujoco_q[:-7]  # Exclude object information from q
-        else:
-            self.robot_data.qpos = mujoco_q
-        # Forward kinematics to update all positions
-        mujoco.mj_forward(self.robot_model, self.robot_data)
-
-        robot_link_positions = []
-
-        for link_name in link_names:
-            # Get body ID from name
-            body_id = mujoco.mj_name2id(self.robot_model, mujoco.mjtObj.mjOBJ_BODY, link_name)
-            if body_id == -1:
-                raise ValueError(f"Body {link_name} not found in Mujoco model")
-
-            # Get position in world frame
-            # xpos gives us the position of the body's center of mass in world coordinates
-            pos = self.robot_data.xpos[body_id].copy()
-            robot_link_positions.append(pos)
-
-        return np.array(robot_link_positions)
+        return link_positions(
+            self.robot_model,
+            self.robot_data,
+            q,
+            link_names,
+            allow_trailing_dynamic_object=True,
+        )

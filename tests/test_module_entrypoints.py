@@ -18,6 +18,7 @@ class NoInsertPath(list[str]):
             "omniretarget.examples.robot_retarget",
             [
                 "omniretarget.examples.robot_retarget",
+                "omniretarget.retargeter",
                 "omniretarget.src.interaction_mesh_retargeter",
             ],
         ),
@@ -26,6 +27,7 @@ class NoInsertPath(list[str]):
             [
                 "omniretarget.examples.parallel_robot_retarget",
                 "omniretarget.examples.robot_retarget",
+                "omniretarget.retargeter",
                 "omniretarget.src.interaction_mesh_retargeter",
             ],
         ),
@@ -52,6 +54,101 @@ class NoInsertPath(list[str]):
         (
             "omniretarget.examples.parc_batch_process_to_mj",
             ["omniretarget.examples.parc_batch_process_to_mj"],
+        ),
+        (
+            "omniretarget.retargeting",
+            ["omniretarget.retargeting"],
+        ),
+        (
+            "omniretarget.retargeter",
+            [
+                "omniretarget.retargeter",
+                "omniretarget.src.interaction_mesh_retargeter",
+            ],
+        ),
+        (
+            "omniretarget.retargeting.pipeline",
+            ["omniretarget.retargeting.pipeline"],
+        ),
+        (
+            "omniretarget.retargeting.motion_source",
+            ["omniretarget.retargeting.motion_source"],
+        ),
+        (
+            "omniretarget.retargeting.object_setup",
+            ["omniretarget.retargeting.object_setup"],
+        ),
+        (
+            "omniretarget.retargeting.preprocessing",
+            ["omniretarget.retargeting.preprocessing"],
+        ),
+        (
+            "omniretarget.retargeting.initialization",
+            ["omniretarget.retargeting.initialization"],
+        ),
+        (
+            "omniretarget.retargeting.augmentation",
+            ["omniretarget.retargeting.augmentation"],
+        ),
+        (
+            "omniretarget.retargeting.results",
+            ["omniretarget.retargeting.results"],
+        ),
+        (
+            "omniretarget.retargeting.batch",
+            ["omniretarget.retargeting.batch"],
+        ),
+        (
+            "omniretarget.mujoco",
+            ["omniretarget.mujoco"],
+        ),
+        (
+            "omniretarget.mujoco.assets",
+            ["omniretarget.mujoco.assets"],
+        ),
+        (
+            "omniretarget.mujoco.model_state",
+            ["omniretarget.mujoco.model_state"],
+        ),
+        (
+            "omniretarget.mujoco.kinematics",
+            ["omniretarget.mujoco.kinematics"],
+        ),
+        (
+            "omniretarget.mujoco.collision",
+            ["omniretarget.mujoco.collision"],
+        ),
+        (
+            "omniretarget.solver",
+            ["omniretarget.solver"],
+        ),
+        (
+            "omniretarget.solver.interaction_mesh",
+            ["omniretarget.solver.interaction_mesh"],
+        ),
+        (
+            "omniretarget.solver.frame_problem",
+            ["omniretarget.solver.frame_problem"],
+        ),
+        (
+            "omniretarget.solver.constraints",
+            ["omniretarget.solver.constraints"],
+        ),
+        (
+            "omniretarget.solver.optimizer",
+            ["omniretarget.solver.optimizer"],
+        ),
+        (
+            "omniretarget.solver.trajectory",
+            ["omniretarget.solver.trajectory"],
+        ),
+        (
+            "omniretarget.visualization",
+            ["omniretarget.visualization"],
+        ),
+        (
+            "omniretarget.visualization.viser_adapter",
+            ["omniretarget.visualization.viser_adapter"],
         ),
     ],
 )
