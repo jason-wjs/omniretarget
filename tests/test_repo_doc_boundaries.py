@@ -33,3 +33,18 @@ def test_manifest_does_not_package_markdown_docs() -> None:
 def test_root_readme_is_the_only_readme_entrypoint() -> None:
     readme = Path("README.md").read_text()
     assert "src/omniretarget/README.md" not in readme
+
+
+def test_production_code_does_not_import_legacy_utils_module() -> None:
+    allowed_paths = {
+        Path("src/omniretarget/src/utils.py"),
+    }
+    offenders = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        if path in allowed_paths:
+            continue
+        text = path.read_text()
+        if "omniretarget.src.utils" in text:
+            offenders.append(path)
+
+    assert offenders == []

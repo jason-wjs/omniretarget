@@ -4,10 +4,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from omniretarget.src.utils import (
+from omniretarget.solver.laplacian import (
     calculate_laplacian_coordinates,
     create_interaction_mesh,
     get_adjacency_list,
+)
+from omniretarget.retargeting.spatial import (
     transform_points_local_to_world,
     transform_points_world_to_local,
 )
