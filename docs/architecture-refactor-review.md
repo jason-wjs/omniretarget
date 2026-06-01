@@ -166,6 +166,63 @@ uv run python src/omniretarget/evaluation/eval_retargeting.py --help
 uv run python src/omniretarget/viser_player.py --help
 ```
 
+## Pre-Phase 7 Final Check
+
+After human review approved the refactor branch, the branch was checked again
+before any Phase 7 work:
+
+```text
+git fetch origin
+git rev-list --left-right --count origin/main...HEAD
+0 9
+```
+
+`origin/main` had no commits missing from this branch, so no rebase or merge from
+`main` was required.
+
+The final pre-Phase 7 verification passed:
+
+```text
+git diff --check
+<no output>
+
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
+195 passed, 1 skipped
+```
+
+Core CLI entrypoint smokes returned exit code 0:
+
+```bash
+uv run python src/omniretarget/examples/robot_retarget.py --help
+uv run python src/omniretarget/examples/parallel_robot_retarget.py --help
+uv run python src/omniretarget/examples/parc_process.py --help
+uv run python src/omniretarget/viser_player.py --help
+```
+
+The final pre-Phase 7 12-frame robot-only smoke produced:
+
+```text
+/tmp/omniretarget_pre_phase7_smoke_robot_only/dance1_subject1.npz
+fields: cost, fps, human_joints, qpos
+qpos: (12, 36)
+human_joints: (12, 22, 3)
+```
+
+The final pre-Phase 7 12-frame object-interaction smoke produced:
+
+```text
+/tmp/omniretarget_pre_phase7_smoke_object_interaction/sub3_largebox_003_original.npz
+fields: cost, fps, human_joints, qpos
+qpos: (12, 43)
+human_joints: (12, 52, 3)
+```
+
+The final pre-Phase 7 PARC dry-run returned exit code 0 and planned:
+
+```text
+/tmp/omniretarget_pre_phase7_smoke_parc_retarget/workspace/mid_blocks_001_dm_aug001_dm
+```
+
 ## Smoke Coverage
 
 The branch has used short smoke inputs rather than full-length demonstration
