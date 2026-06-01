@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from omniretarget.config_types.data_type import MotionDataConfig
-from omniretarget.src.utils import (
+from omniretarget.retargeting.motion_data import (
     calculate_scale_factor,
     load_intermimic_data,
     transform_y_up_to_z_up,

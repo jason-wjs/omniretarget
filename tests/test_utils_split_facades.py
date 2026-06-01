@@ -73,3 +73,39 @@ def test_human_to_world_transform_matches_legacy_utils():
 
     np.testing.assert_allclose(world_new, world_legacy)
     np.testing.assert_allclose(quat_new, quat_legacy)
+
+
+def test_motion_data_module_matches_legacy_y_up_transform():
+    from omniretarget.retargeting import motion_data
+    from omniretarget.src import utils as legacy_utils
+
+    points = np.array(
+        [
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+            [[-1.0, -2.0, -3.0], [7.0, 8.0, 9.0]],
+        ]
+    )
+
+    np.testing.assert_allclose(
+        motion_data.transform_y_up_to_z_up(points),
+        legacy_utils.transform_y_up_to_z_up(points),
+    )
+
+
+def test_motion_data_module_matches_legacy_velocity_contacts():
+    from omniretarget.retargeting import motion_data
+    from omniretarget.src import utils as legacy_utils
+
+    joints = np.array(
+        [
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+            [[0.001, 0.0, 0.0], [1.5, 0.0, 0.0]],
+            [[0.002, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        ]
+    )
+    demo_joints = ["left_toe", "right_toe"]
+    foot_names = ["left_toe", "right_toe"]
+
+    assert motion_data.extract_foot_sticking_sequence_velocity(joints, demo_joints, foot_names) == (
+        legacy_utils.extract_foot_sticking_sequence_velocity(joints, demo_joints, foot_names)
+    )

@@ -37,16 +37,18 @@ from omniretarget.mujoco.collision import (  # noqa: E402
 )
 from omniretarget.mujoco.kinematics import body_id, link_positions  # noqa: E402
 from omniretarget.mujoco.model_state import load_model_state  # noqa: E402
-from omniretarget.runtime.context import build_evaluation_runtime_context  # noqa: E402
-from omniretarget.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
+from omniretarget.retargeting.motion_data import (  # noqa: E402
     calculate_scale_factor,
-    create_new_scene_xml_file,
-    create_scaled_multi_boxes_xml,
     extract_foot_sticking_sequence_velocity,
     load_intermimic_data,
     preprocess_motion_data,
-    transform_points_world_to_local,
     transform_y_up_to_z_up,
+)
+from omniretarget.retargeting.spatial import transform_points_world_to_local  # noqa: E402
+from omniretarget.runtime.context import build_evaluation_runtime_context  # noqa: E402
+from omniretarget.src.utils import (  # type: ignore[import-not-found]  # noqa: E402
+    create_new_scene_xml_file,
+    create_scaled_multi_boxes_xml,
 )
 
 

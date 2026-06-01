@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from omniretarget.src.utils import extract_foot_sticking_sequence_velocity, preprocess_motion_data
+from omniretarget.retargeting.motion_data import extract_foot_sticking_sequence_velocity, preprocess_motion_data
 
 
 def preprocess_retargeting_motion(

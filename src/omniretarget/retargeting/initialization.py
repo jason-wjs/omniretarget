@@ -8,11 +8,8 @@ from typing import Any
 import numpy as np
 
 from omniretarget.config_types.task import TaskConfig
+from omniretarget.retargeting.motion_data import estimate_human_orientation, extract_object_first_moving_frame
 from omniretarget.retargeting.spatial import augment_object_poses, transform_from_human_to_world
-from omniretarget.src.utils import (
-    estimate_human_orientation,
-    extract_object_first_moving_frame,
-)
 
 logger = logging.getLogger(__name__)
 
