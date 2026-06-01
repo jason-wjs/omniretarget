@@ -142,3 +142,41 @@ def test_object_assets_module_matches_legacy_axis_scaling():
         object_assets.scale_points_in_object_axes_frame(points, scale_factors, object_axes),
         legacy_utils.scale_points_in_object_axes_frame(points, scale_factors, object_axes),
     )
+
+
+def test_legacy_utils_reexports_all_migrated_functions():
+    from omniretarget.src import utils
+
+    expected_names = {
+        "augment_object_poses",
+        "calculate_laplacian_coordinates",
+        "calculate_laplacian_matrix",
+        "calculate_scale_factor",
+        "create_interaction_mesh",
+        "create_new_scene_xml_file",
+        "create_scaled_multi_boxes_urdf",
+        "create_scaled_multi_boxes_xml",
+        "create_scaled_object_mesh_and_urdf",
+        "create_top_surface_weight_function",
+        "estimate_human_orientation",
+        "extract_foot_sticking_sequence",
+        "extract_foot_sticking_sequence_velocity",
+        "extract_object_first_moving_frame",
+        "find_standing_pose",
+        "get_adjacency_list",
+        "load_intermimic_data",
+        "load_object_data",
+        "load_smpl_motion",
+        "preprocess_motion_data",
+        "scale_points_in_object_axes_frame",
+        "transform_from_human_to_world",
+        "transform_points_local_to_world",
+        "transform_points_world_to_local",
+        "transform_y_up_to_z_up",
+        "weighted_surface_sampling",
+        "weighted_surface_sampling_by_face_normal",
+    }
+
+    assert set(utils.__all__) == expected_names
+    for name in expected_names:
+        assert callable(getattr(utils, name))
