@@ -19,7 +19,7 @@ class NoInsertPath(list[str]):
             [
                 "omniretarget.examples.robot_retarget",
                 "omniretarget.retargeter",
-                "omniretarget.src.interaction_mesh_retargeter",
+                "omniretarget.retargeting.interaction_mesh_retargeter",
             ],
         ),
         (
@@ -28,7 +28,7 @@ class NoInsertPath(list[str]):
                 "omniretarget.examples.parallel_robot_retarget",
                 "omniretarget.examples.robot_retarget",
                 "omniretarget.retargeter",
-                "omniretarget.src.interaction_mesh_retargeter",
+                "omniretarget.retargeting.interaction_mesh_retargeter",
             ],
         ),
         (
@@ -67,7 +67,7 @@ class NoInsertPath(list[str]):
             "omniretarget.retargeter",
             [
                 "omniretarget.retargeter",
-                "omniretarget.src.interaction_mesh_retargeter",
+                "omniretarget.retargeting.interaction_mesh_retargeter",
             ],
         ),
         (

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from omniretarget.config_types.robot import RobotConfig
 from omniretarget.config_types.viser import ViserConfig
-from omniretarget.src.utils import calculate_scale_factor
+from omniretarget.retargeting.motion_data import calculate_scale_factor
 
 
 def test_package_path_resolves_height_dict() -> None:

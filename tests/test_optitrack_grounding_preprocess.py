@@ -1,6 +1,6 @@
 import numpy as np
 
-from omniretarget.src.utils import preprocess_motion_data
+from omniretarget.retargeting.motion_data import preprocess_motion_data
 
 
 class _DummyRetargeter:
