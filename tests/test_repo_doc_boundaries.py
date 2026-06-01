@@ -35,27 +35,13 @@ def test_root_readme_is_the_only_readme_entrypoint() -> None:
     assert "src/omniretarget/README.md" not in readme
 
 
-def test_production_code_does_not_import_legacy_utils_module() -> None:
-    allowed_paths = {
-        Path("src/omniretarget/src/utils.py"),
-    }
-    offenders = []
-    for path in PACKAGE_ROOT.rglob("*.py"):
-        if path in allowed_paths:
-            continue
-        text = path.read_text()
-        if "omniretarget.src.utils" in text:
-            offenders.append(path)
-
-    assert offenders == []
+def test_legacy_src_namespace_is_removed() -> None:
+    assert not Path("src/omniretarget/src").exists()
 
 
 def test_production_code_does_not_import_legacy_src_namespace() -> None:
-    allowed_prefix = Path("src/omniretarget/src")
     offenders = []
     for path in PACKAGE_ROOT.rglob("*.py"):
-        if path.is_relative_to(allowed_prefix):
-            continue
         text = path.read_text()
         if "omniretarget.src." in text or "from omniretarget.src" in text:
             offenders.append(path)

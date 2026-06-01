@@ -1,7 +1,7 @@
 import numpy as np
 
 from omniretarget.evaluation.eval_retargeting import RetargetingEvaluator
-from omniretarget.src.utils import extract_foot_sticking_sequence_velocity
+from omniretarget.retargeting.motion_data import extract_foot_sticking_sequence_velocity
 
 
 def test_extract_foot_sticking_sequence_velocity_uses_requested_toe_names() -> None:

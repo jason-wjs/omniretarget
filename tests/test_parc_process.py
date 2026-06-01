@@ -22,8 +22,8 @@ from omniretarget.parc_process.source_fk import build_source_joint_positions
 from omniretarget.parc_process.source_io import load_parc_sample
 from omniretarget.parc_process.terrain_scene import export_parc_scene
 from omniretarget.parc_process.workspace import build_parc_workspace
+from omniretarget.retargeting.spatial import transform_from_human_to_world
 from omniretarget.retargeter import InteractionMeshRetargeter
-from omniretarget.src.utils import transform_from_human_to_world
 
 
 BODY_NAMES = (
