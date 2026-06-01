@@ -151,6 +151,10 @@ class NoInsertPath(list[str]):
             ["omniretarget.visualization"],
         ),
         (
+            "omniretarget.visualization.playback",
+            ["omniretarget.visualization.playback"],
+        ),
+        (
             "omniretarget.visualization.viser_adapter",
             ["omniretarget.visualization.viser_adapter"],
         ),

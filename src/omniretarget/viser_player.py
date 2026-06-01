@@ -11,7 +11,7 @@ import yourdfpy  # type: ignore[import-untyped]  # pip install yourdfpy
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
 from omniretarget.config_types.viser import ViserConfig  # noqa: E402
-from omniretarget.src.viser_utils import create_motion_control_sliders  # noqa: E402
+from omniretarget.visualization.playback import create_motion_control_sliders  # noqa: E402
 
 
 def load_npz(npz_path: str):

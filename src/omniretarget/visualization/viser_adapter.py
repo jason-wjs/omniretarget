@@ -9,7 +9,7 @@ import yourdfpy  # type: ignore[import-untyped]
 from viser.extras import ViserUrdf  # type: ignore[import-not-found]
 
 from omniretarget.mujoco.assets import world_mesh_from_geom
-from omniretarget.src.viser_utils import create_motion_control_sliders
+from omniretarget.visualization.playback import create_motion_control_sliders
 
 
 def setup_visualization(retargeter) -> None:
