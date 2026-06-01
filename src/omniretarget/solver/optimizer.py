@@ -18,7 +18,7 @@ from omniretarget.solver.constraints import (
     trust_region_constraints,
 )
 from omniretarget.solver.frame_problem import FrameProblem, FrameSolution
-from omniretarget.src.utils import calculate_laplacian_matrix
+from omniretarget.solver.laplacian import calculate_laplacian_matrix
 
 
 def solve_frame_problem(solver: Any, problem: FrameProblem) -> FrameSolution:
