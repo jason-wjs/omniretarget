@@ -48,3 +48,16 @@ def test_production_code_does_not_import_legacy_utils_module() -> None:
             offenders.append(path)
 
     assert offenders == []
+
+
+def test_production_code_does_not_import_legacy_src_namespace() -> None:
+    allowed_prefix = Path("src/omniretarget/src")
+    offenders = []
+    for path in PACKAGE_ROOT.rglob("*.py"):
+        if path.is_relative_to(allowed_prefix):
+            continue
+        text = path.read_text()
+        if "omniretarget.src." in text or "from omniretarget.src" in text:
+            offenders.append(path)
+
+    assert offenders == []
