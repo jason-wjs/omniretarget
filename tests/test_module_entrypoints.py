@@ -60,6 +60,10 @@ class NoInsertPath(list[str]):
             ["omniretarget.retargeting"],
         ),
         (
+            "omniretarget.retargeting.interaction_mesh_retargeter",
+            ["omniretarget.retargeting.interaction_mesh_retargeter"],
+        ),
+        (
             "omniretarget.retargeter",
             [
                 "omniretarget.retargeter",
