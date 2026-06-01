@@ -9,7 +9,7 @@ from omniretarget.solver.laplacian import (
     create_interaction_mesh,
     get_adjacency_list,
 )
-from omniretarget.src.utils import (
+from omniretarget.retargeting.spatial import (
     transform_points_local_to_world,
     transform_points_world_to_local,
 )
