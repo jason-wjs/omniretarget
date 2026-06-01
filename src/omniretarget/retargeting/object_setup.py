@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from omniretarget.config_types.task import TaskConfig
-from omniretarget.src.utils import (
+from omniretarget.retargeting.object_assets import (
     create_new_scene_xml_file,
     create_scaled_multi_boxes_urdf,
     create_scaled_multi_boxes_xml,

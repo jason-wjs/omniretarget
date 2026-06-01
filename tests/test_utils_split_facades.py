@@ -109,3 +109,36 @@ def test_motion_data_module_matches_legacy_velocity_contacts():
     assert motion_data.extract_foot_sticking_sequence_velocity(joints, demo_joints, foot_names) == (
         legacy_utils.extract_foot_sticking_sequence_velocity(joints, demo_joints, foot_names)
     )
+
+
+def test_object_assets_module_matches_legacy_top_surface_weights():
+    from omniretarget.retargeting import object_assets
+    from omniretarget.src import utils as legacy_utils
+
+    new_weight = object_assets.create_top_surface_weight_function(angle_threshold=30)
+    legacy_weight = legacy_utils.create_top_surface_weight_function(angle_threshold=30)
+
+    top_normal = np.array([0.0, 0.0, 1.0])
+    side_normal = np.array([1.0, 0.0, 0.0])
+    down_normal = np.array([0.0, 0.0, -1.0])
+    high_center = np.array([0.0, 0.0, 1.0])
+    low_center = np.array([0.0, 0.0, 0.1])
+
+    assert new_weight(top_normal, high_center) == legacy_weight(top_normal, high_center)
+    assert new_weight(top_normal, low_center) == legacy_weight(top_normal, low_center)
+    assert new_weight(side_normal, low_center) == legacy_weight(side_normal, low_center)
+    assert new_weight(down_normal, low_center) == legacy_weight(down_normal, low_center)
+
+
+def test_object_assets_module_matches_legacy_axis_scaling():
+    from omniretarget.retargeting import object_assets
+    from omniretarget.src import utils as legacy_utils
+
+    points = np.array([[1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]])
+    scale_factors = np.array([2.0, 0.5, 1.5])
+    object_axes = np.eye(3)
+
+    np.testing.assert_allclose(
+        object_assets.scale_points_in_object_axes_frame(points, scale_factors, object_axes),
+        legacy_utils.scale_points_in_object_axes_frame(points, scale_factors, object_axes),
+    )
